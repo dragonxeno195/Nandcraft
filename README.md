@@ -33,6 +33,6 @@ The objective is to synthesize target digital logic circuits using **only 2-inpu
 No installation or server setup is necessary. Simply clone the repository and open `index.html` in any modern web browser:
 
 ```bash
-git clone [https://github.com/](https://github.com/)<your-username>/<repo-name>.git
-cd <repo-name>
+git clone [https://github.com/dragonxeno195/Nandcraft.git](https://github.com/dragonxeno195/Nandcraft.git)
+cd Nandcraft
 open index.html
