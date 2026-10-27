@@ -1,0 +1,2737 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>NANDcraft: The Universal Gate Workshop</title>
+  <!-- Tailwind CSS CDN -->
+  <script src="https://cdn.tailwindcss.com"></script>
+  <!-- Google Fonts: Inter & JetBrains Mono -->
+  <link rel="preconnect" href="https://fonts.googleapis.com">
+  <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+  <link href="https://fonts.googleapis.com/css2?family=Inter:wght@400;500;600;700&family=JetBrains+Mono:wght@400;600;700&display=swap" rel="stylesheet">
+  <!-- Lucide Icons -->
+  <script src="https://unpkg.com/lucide@latest"></script>
+  <!-- Canvas Confetti -->
+  <script src="https://cdn.jsdelivr.net/npm/canvas-confetti@1.6.0/dist/confetti.browser.min.js"></script>
+
+  <script>
+    tailwind.config = {
+      darkMode: 'class',
+      theme: {
+        extend: {
+          fontFamily: {
+            sans: ['Inter', 'sans-serif'],
+            mono: ['JetBrains Mono', 'monospace'],
+          },
+          colors: {
+            cyber: {
+              950: '#060911',
+              900: '#0a0f1d',
+              850: '#0f172a',
+              800: '#1e293b',
+              700: '#334155',
+              600: '#475569',
+              accent: '#06b6d4',
+              emerald: '#10b981',
+              neon: '#38bdf8',
+            }
+          }
+        }
+      }
+    }
+  </script>
+
+  <style>
+    /* Prevent rubber-banding on mobile while retaining scroll */
+    html, body {
+      overscroll-behavior-y: contain;
+      -webkit-tap-highlight-color: transparent;
+    }
+    
+    .glow-cyan {
+      box-shadow: 0 0 20px rgba(6, 182, 212, 0.45);
+    }
+    .glow-emerald {
+      box-shadow: 0 0 24px rgba(16, 185, 129, 0.45);
+    }
+    .glow-amber-pulse {
+      animation: amberGlow 1.8s infinite ease-in-out;
+    }
+    @keyframes amberGlow {
+      0%, 100% {
+        box-shadow: 0 0 8px rgba(245, 158, 11, 0.4), 0 0 16px rgba(245, 158, 11, 0.2);
+        transform: scale(1);
+      }
+      50% {
+        box-shadow: 0 0 20px rgba(245, 158, 11, 0.8), 0 0 32px rgba(245, 158, 11, 0.4);
+        transform: scale(1.08);
+      }
+    }
+
+    .port-pulse {
+      animation: portPulse 1.2s infinite ease-in-out;
+    }
+    @keyframes portPulse {
+      0%, 100% { r: 9px; opacity: 0.95; }
+      50% { r: 14px; opacity: 0.35; }
+    }
+
+    .wire-flow-high {
+      stroke-dasharray: 6 4;
+      animation: wireFlow 0.8s linear infinite;
+    }
+    @keyframes wireFlow {
+      from { stroke-dashoffset: 20; }
+      to { stroke-dashoffset: 0; }
+    }
+
+    .canvas-wiring {
+      cursor: crosshair;
+      user-select: none;
+      touch-action: none;
+    }
+
+    /* Scrollbars */
+    ::-webkit-scrollbar {
+      width: 5px;
+      height: 5px;
+    }
+    ::-webkit-scrollbar-track {
+      background: #0a0f1d;
+    }
+    ::-webkit-scrollbar-thumb {
+      background: #334155;
+      border-radius: 4px;
+    }
+  </style>
+</head>
+<body class="bg-cyber-950 text-slate-100 font-sans min-h-screen flex flex-col antialiased selection:bg-cyan-500 selection:text-black">
+
+  <!-- Top Sticky Navigation -->
+  <header class="border-b border-cyber-700/60 bg-cyber-900/95 backdrop-blur sticky top-0 z-40 px-3 sm:px-6 py-2.5">
+    <div class="max-w-7xl mx-auto flex flex-col sm:flex-row items-center justify-between gap-2.5">
+      <div class="w-full sm:w-auto flex items-center justify-between">
+        <div class="flex items-center gap-2.5">
+          <div class="w-9 h-9 rounded-xl bg-gradient-to-tr from-cyan-500 via-sky-500 to-emerald-400 flex items-center justify-center shadow-lg shadow-cyan-500/25 shrink-0">
+            <i data-lucide="cpu" class="w-5 h-5 text-slate-950 font-bold"></i>
+          </div>
+          <div>
+            <h1 class="text-base sm:text-lg font-bold tracking-tight text-white flex items-center gap-1.5">
+              NAND<span class="text-cyan-400">craft</span>
+              <span class="text-[10px] px-1.5 py-0.5 rounded-full bg-cyan-950 text-cyan-300 border border-cyan-800 font-mono">v2.1</span>
+            </h1>
+            <p class="text-[10px] sm:text-xs text-slate-400 hidden xs:block">Universal Logic Laboratory &bull; Educational Circuit Builder</p>
+          </div>
+        </div>
+
+        <!-- Audio mute toggle button for mobile -->
+        <button id="sound-toggle-btn" onclick="toggleAudio()" class="sm:hidden px-2.5 py-1.5 rounded-lg bg-cyber-850 border border-cyber-700 text-xs text-slate-300 flex items-center gap-1.5">
+          <i id="sound-icon-mobile" data-lucide="volume-2" class="w-4 h-4 text-cyan-400"></i>
+        </button>
+      </div>
+
+      <!-- Navigation Bar -->
+      <div class="w-full sm:w-auto flex items-center justify-between sm:justify-end gap-2 overflow-x-auto pb-1 sm:pb-0">
+        <!-- Audio for larger screens -->
+        <button onclick="toggleAudio()" class="hidden sm:flex px-3 py-1.5 rounded-lg bg-cyber-850 hover:bg-cyber-800 border border-cyber-700 text-xs text-slate-300 items-center gap-1.5 transition" title="Toggle audio feedback">
+          <i id="sound-icon" data-lucide="volume-2" class="w-4 h-4 text-cyan-400"></i>
+          <span id="sound-text">Audio ON</span>
+        </button>
+
+        <!-- Mode Segmented Selector -->
+        <nav class="flex items-center gap-1 bg-cyber-900/90 p-1 rounded-xl border border-cyber-700/80 text-xs font-medium w-full sm:w-auto justify-between">
+          <button id="tab-btn-basics" onclick="switchMode('basics')" class="px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 sm:gap-1.5 transition bg-cyan-500 text-slate-950 font-semibold shadow">
+            <i data-lucide="shield" class="w-3.5 h-3.5"></i> <span>Basics</span>
+          </button>
+          <button id="tab-btn-advanced" onclick="switchMode('advanced')" class="px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 sm:gap-1.5 transition text-slate-300 hover:text-white hover:bg-cyber-800">
+            <i data-lucide="layers" class="w-3.5 h-3.5"></i> <span>Advanced</span>
+          </button>
+          <button id="tab-btn-quiz" onclick="switchMode('quiz')" class="px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 sm:gap-1.5 transition text-slate-300 hover:text-white hover:bg-cyber-800">
+            <i data-lucide="clipboard-check" class="w-3.5 h-3.5"></i> <span>Drill</span>
+          </button>
+          <button id="tab-btn-sandbox" onclick="switchMode('sandbox')" class="px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 sm:gap-1.5 transition text-slate-300 hover:text-white hover:bg-cyber-800">
+            <i data-lucide="sparkles" class="w-3.5 h-3.5"></i> <span>Sandbox</span>
+          </button>
+        </nav>
+      </div>
+    </div>
+  </header>
+
+  <!-- Main Container -->
+  <main class="flex-1 max-w-7xl w-full mx-auto p-3 sm:p-5 lg:p-6 space-y-5">
+
+    <!-- ============================================================== -->
+    <!-- SECTION 1 & 2: BASICS & ADVANCED CIRCUIT SYNTHESIS MODES      -->
+    <!-- ============================================================== -->
+    <section id="view-circuit" class="space-y-4">
+      
+      <!-- Target Gate Selector Bar -->
+      <div class="bg-cyber-850 border border-cyber-700/70 rounded-2xl p-3.5 sm:p-4 shadow-xl">
+        <div class="flex flex-col md:flex-row md:items-center justify-between gap-3">
+          <div>
+            <div class="flex items-center gap-1.5 text-[11px] font-mono text-cyan-400 uppercase tracking-wider">
+              <i data-lucide="target" class="w-3.5 h-3.5"></i>
+              <span id="circuit-category-label">Target Standard Gate: Clean Slate</span>
+            </div>
+            <h2 class="text-base sm:text-lg font-bold text-white mt-0.5" id="circuit-target-heading">Convert to NANDs: Inverter (NOT)</h2>
+          </div>
+
+          <!-- Problem chips (scrollable on mobile) -->
+          <div class="flex gap-1.5 overflow-x-auto pb-1 max-w-full" id="problem-chips-container"></div>
+        </div>
+      </div>
+
+      <!-- Main Two-Column Layout -->
+      <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+        
+        <!-- Left 8 Cols: Interactive Schematic Canvas -->
+        <div class="lg:col-span-8 space-y-3 sm:space-y-4">
+          <div class="bg-cyber-850 border border-cyber-700/70 rounded-2xl p-3 sm:p-5 shadow-xl relative overflow-hidden flex flex-col">
+            
+            <!-- Canvas Toolbar WITH PROMINENT TARGET BOOLEAN EQUATION -->
+            <div class="flex flex-wrap items-center justify-between border-b border-cyber-700/60 pb-3 gap-2.5">
+              
+              <!-- Left: Target Badge & Gate Count -->
+              <div class="flex items-center gap-2 sm:gap-3 flex-wrap">
+                <span class="px-2.5 py-1 rounded bg-cyber-900 border border-cyber-700 font-mono text-xs text-cyan-300 font-bold" id="circuit-badge">TARGET: NOT</span>
+                <span class="text-[11px] sm:text-xs text-slate-400 font-mono">
+                  Gates: <span id="gate-count-label" class="font-bold text-white">1</span> / <span id="optimal-count-label" class="text-slate-400">1 (optimal)</span>
+                </span>
+              </div>
+
+              <!-- Center: PROMINENT STANDARD BOOLEAN EQUATION DISPLAY -->
+              <div class="flex items-center gap-1.5 bg-cyan-950/70 border border-cyan-500/40 px-3 py-1 rounded-xl shadow-inner my-0.5">
+                <span class="text-[10px] uppercase font-mono tracking-wider text-cyan-400 font-semibold hidden sm:inline">Target Eq:</span>
+                <span id="circuit-target-equation" class="font-mono text-xs sm:text-sm font-bold text-white tracking-wide">Y = A'</span>
+              </div>
+
+              <!-- Right: Actions -->
+              <div class="flex items-center gap-1.5 ml-auto sm:ml-0">
+                <button onclick="addNandGate()" id="btn-add-gate" class="text-xs px-2.5 sm:px-3 py-1.5 rounded-lg bg-cyber-800 border border-cyan-500/40 hover:bg-cyan-950 text-cyan-300 flex items-center gap-1 transition">
+                  <i data-lucide="plus" class="w-3.5 h-3.5"></i> <span>Add NAND</span>
+                </button>
+                <button onclick="resetCircuitSlate()" class="text-xs px-2.5 sm:px-3 py-1.5 rounded-lg bg-cyber-800 border border-cyber-700 hover:bg-rose-950/40 text-slate-300 hover:text-rose-300 flex items-center gap-1 transition" title="Start with clean slate">
+                  <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> <span>Reset</span>
+                </button>
+              </div>
+            </div>
+
+            <!-- Signal Generator Bar & Realtime Output Probe -->
+            <div class="bg-cyber-900/90 rounded-xl p-2.5 sm:p-3 border border-cyber-700/50 my-2.5 flex flex-wrap items-center justify-between gap-2.5">
+              <div class="flex items-center gap-1.5 sm:gap-2" id="input-generator-bar">
+                <span class="text-[11px] sm:text-xs text-slate-400 font-mono">Signals:</span>
+                <!-- Button A -->
+                <button onclick="toggleCircuitInput('A')" id="btn-input-A" class="px-2.5 sm:px-3 py-1 rounded-lg font-mono text-xs font-bold border transition flex items-center gap-1.5 bg-emerald-950 border-emerald-500 text-emerald-300">
+                  <span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> A = 1
+                </button>
+                <!-- Button B -->
+                <button onclick="toggleCircuitInput('B')" id="btn-input-B" class="px-2.5 sm:px-3 py-1 rounded-lg font-mono text-xs font-bold border transition flex items-center gap-1.5 bg-cyber-800 border-slate-600 text-slate-400">
+                  <span class="w-2 h-2 rounded-full bg-slate-500"></span> B = 0
+                </button>
+                <!-- Button C / S (Conditional for 3-wire circuits) -->
+                <button onclick="toggleCircuitInput('C')" id="btn-input-C" class="hidden px-2.5 sm:px-3 py-1 rounded-lg font-mono text-xs font-bold border transition flex items-center gap-1.5 bg-cyber-800 border-slate-600 text-slate-400">
+                  <span class="w-2 h-2 rounded-full bg-slate-500"></span> C = 0
+                </button>
+              </div>
+
+              <!-- Output Probe Badge -->
+              <div class="flex items-center gap-2 text-xs font-mono ml-auto">
+                <span class="text-slate-400">Probed (<span id="probe-pin-label" class="text-cyan-300 font-bold">N1</span>):</span>
+                <span id="circuit-realtime-out" class="font-mono font-bold text-sm px-2.5 py-0.5 rounded bg-cyber-800 border border-cyber-700 text-amber-300">0</span>
+              </div>
+            </div>
+
+            <!-- Mobile Wire Snapping Guide Banner -->
+            <div class="flex items-center justify-between text-[11px] text-cyan-400/90 bg-cyan-950/40 px-2.5 sm:px-3 py-1.5 rounded-lg border border-cyan-800/40 mb-2.5">
+              <span class="flex items-center gap-1.5">
+                <i data-lucide="touchpad" class="w-3.5 h-3.5 text-cyan-400 shrink-0"></i>
+                <span><strong>Dual Connect:</strong> Click/tap a source then click target pin, or drag across! Tap wire to remove.</span>
+              </span>
+            </div>
+
+            <!-- RESPONSIVE SVG CANVAS CONTAINER WITH ABSOLUTE FLOATING OVERLAY (NO SCREEN SHIFTING) -->
+            <div id="svg-canvas-wrapper" class="relative bg-cyber-900/95 rounded-xl border border-cyber-700/60 p-1 min-h-[320px] flex items-center justify-center overflow-x-auto shadow-inner touch-none">
+              
+              <!-- FLOATING ABSOLUTE WIRING OVERLAY (DOES NOT RESIZE OR SHIFT SCREEN) -->
+              <div id="wiring-mode-banner" class="hidden absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-cyber-900/95 border border-cyan-400/70 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-2xl text-xs text-cyan-200 font-mono flex items-center gap-2.5 pointer-events-auto transition-all animate-fade-in">
+                <span class="w-2 h-2 rounded-full bg-cyan-400 animate-ping shrink-0"></span>
+                <span>Connecting <strong id="wiring-source-label" class="text-white bg-cyan-950 px-1.5 py-0.5 rounded border border-cyan-700">A</strong> &rarr; Click any pin to lock</span>
+                <button onclick="cancelWiringMode()" class="px-2 py-0.5 rounded-full bg-rose-950/90 text-rose-300 border border-rose-800 hover:bg-rose-900 text-[10px] ml-1 transition" title="Cancel connection">
+                  Cancel (ESC)
+                </button>
+              </div>
+
+              <svg id="circuit-svg" class="w-full h-auto min-w-[620px] max-h-[380px] canvas-wiring" viewBox="0 0 740 330"></svg>
+            </div>
+
+            <!-- Probed Terminal Selector & Accessible Dropdowns -->
+            <div class="mt-3 pt-3 border-t border-cyber-700/60 space-y-2.5">
+              <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-2">
+                <div class="flex items-center gap-2">
+                  <span class="w-2.5 h-2.5 rounded-full bg-cyan-400 animate-pulse"></span>
+                  <label for="circuit-output-select" class="text-xs font-semibold text-slate-300">Designate Circuit Output Terminal:</label>
+                </div>
+                <select id="circuit-output-select" onchange="updateCircuitOutput(this.value)" class="bg-cyber-800 border border-cyber-700 text-cyan-300 rounded-lg px-2.5 py-1 text-xs font-mono">
+                </select>
+              </div>
+
+              <!-- Collapsible Manual Pin Matrix -->
+              <details class="group bg-cyber-900/60 rounded-xl border border-cyber-700/50 p-2.5 transition">
+                <summary class="flex items-center justify-between cursor-pointer list-none text-xs font-semibold text-slate-300">
+                  <span class="flex items-center gap-2">
+                    <i data-lucide="sliders" class="w-3.5 h-3.5 text-cyan-400"></i> Manual Pin Wiring Table (Accessible Dropdowns)
+                  </span>
+                  <i data-lucide="chevron-down" class="w-4 h-4 transition-transform group-open:rotate-180 text-slate-400"></i>
+                </summary>
+                <div id="gate-wiring-container" class="mt-2.5 space-y-2 pt-2 border-t border-cyber-800">
+                  <!-- Populated dynamically -->
+                </div>
+              </details>
+            </div>
+
+            <!-- Textbook Walkthrough Accordion Panel -->
+            <div class="mt-3 pt-2 border-t border-cyber-700/50" id="walkthrough-section">
+              <details id="walkthrough-details" class="group bg-cyber-900/70 rounded-xl border border-cyber-700/60 p-3.5 transition">
+                <summary class="flex items-center justify-between cursor-pointer list-none text-xs font-semibold text-cyan-400">
+                  <span class="flex items-center gap-2">
+                    <i data-lucide="book-open" class="w-4 h-4 text-cyan-400"></i> Textbook Theory & Complete Solution Walkthrough
+                  </span>
+                  <i data-lucide="chevron-down" class="w-4 h-4 transition-transform group-open:rotate-180 text-slate-400"></i>
+                </summary>
+                <div id="walkthrough-content" class="mt-3 text-xs leading-relaxed text-slate-300 space-y-3 font-sans border-t border-cyber-800 pt-3">
+                  <!-- Injected dynamically -->
+                </div>
+              </details>
+            </div>
+
+          </div>
+        </div>
+
+        <!-- Right 4 Cols: Real-Time Verification & Dual Truth Table -->
+        <div class="lg:col-span-4 space-y-3 sm:space-y-4">
+          
+          <!-- Verification Status Card -->
+          <div id="validation-card" class="bg-cyber-850 border border-cyber-700/70 rounded-2xl p-4 sm:p-5 shadow-xl transition-all">
+            <div class="flex items-center gap-3">
+              <div id="validation-icon-box" class="w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0">
+                <i data-lucide="alert-circle" class="w-5 h-5"></i>
+              </div>
+              <div>
+                <h4 id="validation-title" class="font-bold text-sm text-white">Wiring Clean Slate</h4>
+                <p id="validation-subtitle" class="text-xs text-slate-400">Connect wires to match target truth table.</p>
+              </div>
+            </div>
+
+            <!-- Progress Bar -->
+            <div class="mt-3.5">
+              <div class="flex justify-between text-xs font-mono text-slate-400 mb-1">
+                <span>Vector Accuracy</span>
+                <span id="match-percent" class="font-bold text-cyan-400">0%</span>
+              </div>
+              <div class="w-full bg-cyber-900 h-2 rounded-full overflow-hidden border border-cyber-700/40">
+                <div id="match-bar" class="bg-gradient-to-r from-cyan-500 to-emerald-400 h-full w-0 transition-all duration-300"></div>
+              </div>
+            </div>
+
+            <!-- Success Banner -->
+            <div id="success-banner" class="hidden mt-3 p-3 bg-emerald-950/80 border border-emerald-500/50 rounded-xl text-xs text-emerald-300 flex items-start gap-2 shadow-lg">
+              <i data-lucide="party-popper" class="w-4 h-4 shrink-0 text-emerald-400 mt-0.5"></i>
+              <div>
+                <strong>Equivalent Synthesized!</strong> You proved this circuit using purely universal NAND gates.
+              </div>
+            </div>
+          </div>
+
+          <!-- Dual Truth Table Comparison -->
+          <div class="bg-cyber-850 border border-cyber-700/70 rounded-2xl p-4 sm:p-5 shadow-xl space-y-3">
+            <div class="flex items-center justify-between">
+              <h3 class="text-sm font-semibold text-white flex items-center gap-2">
+                <i data-lucide="table" class="w-4 h-4 text-cyan-400"></i> Real-Time Truth Table
+              </h3>
+              <span id="vector-count-label" class="text-xs font-mono text-slate-400">4 Vectors</span>
+            </div>
+
+            <div class="overflow-x-auto max-h-[280px]">
+              <table class="w-full text-center text-xs font-mono">
+                <thead>
+                  <tr class="border-b border-cyber-700 text-slate-400 uppercase text-[11px]">
+                    <th class="py-2 px-1.5 bg-cyber-900/60 rounded-tl-lg">A</th>
+                    <th class="py-2 px-1.5 bg-cyber-900/60" id="th-b">B</th>
+                    <th class="py-2 px-1.5 bg-cyber-900/60 hidden" id="th-c">C</th>
+                    <th class="py-2 px-1.5 text-cyan-400 bg-cyber-900/80">Target</th>
+                    <th class="py-2 px-1.5 text-slate-300 bg-cyber-900/80">Yours</th>
+                    <th class="py-2 px-1.5 rounded-tr-lg bg-cyber-900/60">Match</th>
+                  </tr>
+                </thead>
+                <tbody id="truth-table-body" class="divide-y divide-cyber-800 text-xs">
+                </tbody>
+              </table>
+            </div>
+
+            <p class="text-[11px] text-slate-400 italic">
+              Highlighted row corresponds to the live signal generators above.
+            </p>
+          </div>
+
+          <!-- Universal NAND Axiom Card -->
+          <div class="bg-cyber-850/80 border border-cyber-700/50 rounded-xl p-3.5 text-xs space-y-1.5">
+            <div class="font-semibold text-slate-300 flex items-center gap-1.5">
+              <i data-lucide="zap" class="w-3.5 h-3.5 text-cyan-400"></i> Functional Completeness Theorem
+            </div>
+            <p class="text-slate-400 text-[11px] leading-relaxed">
+              Every Boolean operation {NOT, AND, OR} can be formulated using solely NAND gates.
+            </p>
+          </div>
+
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 3: TRUTH TABLE DRILL QUIZ MODE                         -->
+    <!-- ============================================================== -->
+    <section id="view-quiz" class="hidden space-y-5">
+      <div class="bg-cyber-850 border border-cyber-700/70 rounded-2xl p-4 sm:p-6 shadow-xl max-w-4xl mx-auto space-y-5">
+        <div class="flex flex-col sm:flex-row sm:items-center justify-between gap-3 border-b border-cyber-700/60 pb-3">
+          <div>
+            <span class="text-xs font-mono text-cyan-400 tracking-wider uppercase">Textbook Exercises</span>
+            <h2 class="text-lg sm:text-xl font-bold text-white mt-0.5">Interactive Truth Table Drill</h2>
+            <p class="text-xs text-slate-400">Evaluate each multi-gate NAND configuration and deduce the truth table output.</p>
+          </div>
+          <button onclick="nextQuizExercise()" class="px-3.5 py-1.5 rounded-xl bg-cyber-800 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-950 font-medium text-xs flex items-center gap-2 self-start sm:self-auto transition">
+            <i data-lucide="refresh-cw" class="w-3.5 h-3.5"></i> Next Exercise
+          </button>
+        </div>
+
+        <div class="grid grid-cols-1 md:grid-cols-2 gap-4 items-center">
+          <div class="p-3.5 rounded-xl bg-cyber-900 border border-cyber-700/70 space-y-2">
+            <span id="quiz-tag" class="text-xs font-mono font-semibold px-2 py-0.5 rounded bg-cyan-950 text-cyan-300 border border-cyan-800">DRILL 1 OF 6</span>
+            <h3 id="quiz-title" class="text-sm sm:text-base font-bold text-white">Tied NAND Inverter</h3>
+            <p id="quiz-desc" class="text-xs text-slate-300 leading-relaxed"></p>
+          </div>
+
+          <!-- Mini Schematic SVG with clear wire labels and complete multi-gate paths -->
+          <div class="bg-cyber-900/95 rounded-xl border border-cyber-700/60 p-2 flex items-center justify-center min-h-[180px]">
+            <svg id="quiz-circuit-svg" class="w-full h-[180px]" viewBox="0 0 460 180"></svg>
+          </div>
+        </div>
+
+        <div class="max-w-md mx-auto space-y-3">
+          <table class="w-full text-center text-xs sm:text-sm font-mono border-collapse">
+            <thead>
+              <tr class="border-b border-cyber-700 text-slate-400 uppercase text-xs">
+                <th class="py-2 px-3 bg-cyber-900/60 rounded-tl-lg">A</th>
+                <th class="py-2 px-3 bg-cyber-900/60" id="quiz-th-b">B</th>
+                <th class="py-2 px-3 text-cyan-400 bg-cyber-900/80 rounded-tr-lg">Your Answer</th>
+              </tr>
+            </thead>
+            <tbody id="quiz-table-body" class="divide-y divide-cyber-800">
+            </tbody>
+          </table>
+
+          <button onclick="evaluateQuizTable()" class="w-full py-2.5 rounded-xl bg-gradient-to-r from-cyan-500 to-emerald-400 hover:from-cyan-400 hover:to-emerald-300 text-slate-950 font-bold text-xs sm:text-sm shadow-lg shadow-cyan-500/20 transition flex items-center justify-center gap-2">
+            <i data-lucide="check-circle" class="w-4 h-4"></i> Check Truth Table
+          </button>
+
+          <div id="quiz-feedback-box" class="hidden p-3 rounded-xl text-xs font-medium"></div>
+        </div>
+      </div>
+    </section>
+
+    <!-- ============================================================== -->
+    <!-- SECTION 4: FREEFORM SANDBOX WITH CUSTOM BOOLEAN EQUATION INPUT -->
+    <!-- ============================================================== -->
+    <section id="view-sandbox" class="hidden space-y-5">
+      <div class="bg-cyber-850 border border-cyber-700/70 rounded-2xl p-4 sm:p-5 shadow-xl space-y-4">
+        
+        <!-- Header & Custom Equation Goal Bar -->
+        <div class="flex flex-col lg:flex-row lg:items-center justify-between gap-3 border-b border-cyber-700/60 pb-3">
+          <div>
+            <div class="flex items-center gap-2 text-xs font-mono text-cyan-400 uppercase">
+              <i data-lucide="flask-conical" class="w-4 h-4"></i> Experimental Sandbox
+            </div>
+            <h2 class="text-base sm:text-lg font-bold text-white mt-0.5">Custom Boolean Target & Synthesis Lab</h2>
+          </div>
+
+          <!-- CUSTOM EQUATION INPUT BAR (TEXTBOOK TARGET OR USER EQUATION) -->
+          <div class="flex-1 max-w-xl mx-0 lg:mx-3 flex flex-col sm:flex-row items-stretch sm:items-center gap-2 bg-cyber-900/80 p-1.5 rounded-xl border border-cyber-700/80">
+            <div class="flex items-center gap-1.5 flex-1 px-2">
+              <span class="text-xs font-mono text-cyan-400 font-bold whitespace-nowrap">Goal Y =</span>
+              <input type="text" id="sandbox-custom-expr-input" value="A'B + AB'" placeholder="e.g. A'B + AB' or (A+B)'" class="w-full bg-cyber-800 text-white font-mono text-xs px-2.5 py-1.5 rounded-lg border border-cyber-700 focus:outline-none focus:border-cyan-400 placeholder:text-slate-500" />
+            </div>
+
+            <div class="flex items-center gap-1.5">
+              <button onclick="applyCustomSandboxTarget()" class="px-3 py-1.5 rounded-lg bg-cyan-500 hover:bg-cyan-400 text-slate-950 font-bold text-xs whitespace-nowrap transition flex items-center gap-1">
+                <i data-lucide="check" class="w-3.5 h-3.5"></i> Set Target
+              </button>
+              
+              <!-- Quick Preset Dropdown -->
+              <select onchange="loadPresetSandboxTarget(this.value)" class="bg-cyber-800 border border-cyber-700 text-slate-300 text-xs rounded-lg px-2 py-1.5 font-mono">
+                <option value="">Presets...</option>
+                <option value="A'B + AB'">XOR: A'B + AB'</option>
+                <option value="AB + A'B'">XNOR: AB + A'B'</option>
+                <option value="(A+B)'">NOR: (A+B)'</option>
+                <option value="A+B">OR: A+B</option>
+                <option value="AB">AND: AB</option>
+                <option value="(AB)'">NAND: (AB)'</option>
+                <option value="A' + B'">De Morgan: A' + B'</option>
+              </select>
+            </div>
+          </div>
+
+          <!-- Controls -->
+          <div class="flex items-center gap-2 self-end lg:self-auto">
+            <button onclick="addSandboxNand()" id="btn-sandbox-add" class="px-3 py-1.5 rounded-xl bg-cyan-500/10 border border-cyan-500/40 text-cyan-300 hover:bg-cyan-500/20 text-xs font-medium flex items-center gap-1.5 transition">
+              <i data-lucide="plus" class="w-3.5 h-3.5"></i> Add NAND
+            </button>
+            <button onclick="resetSandboxLab()" class="px-3 py-1.5 rounded-xl bg-cyber-800 border border-cyber-700 text-slate-300 hover:text-white text-xs font-medium flex items-center gap-1.5 transition">
+              <i data-lucide="rotate-ccw" class="w-3.5 h-3.5"></i> Reset
+            </button>
+          </div>
+        </div>
+
+        <div class="grid grid-cols-1 lg:grid-cols-12 gap-4 sm:gap-6">
+          <div class="lg:col-span-7 space-y-3">
+            <div class="bg-cyber-900/90 rounded-xl p-2.5 border border-cyber-700/60 flex items-center justify-between flex-wrap gap-2">
+              <div class="flex items-center gap-2">
+                <span class="text-xs font-mono text-slate-400">Inputs:</span>
+                <button onclick="toggleSandboxInput('A')" id="btn-sb-A" class="px-2.5 py-1 rounded-lg font-mono text-xs font-bold border transition bg-emerald-950 border-emerald-500 text-emerald-300">A = 1</button>
+                <button onclick="toggleSandboxInput('B')" id="btn-sb-B" class="px-2.5 py-1 rounded-lg font-mono text-xs font-bold border transition bg-cyber-800 border-slate-600 text-slate-400">B = 0</button>
+              </div>
+              <div class="flex items-center gap-2 text-xs font-mono">
+                <span class="text-slate-400">Probe:</span>
+                <select id="sandbox-output-select" onchange="updateSandboxOutput(this.value)" class="bg-cyber-800 border border-cyber-700 text-cyan-300 rounded px-2 py-0.5 font-mono text-xs"></select>
+                <span id="sandbox-final-val" class="font-mono font-bold px-2 py-0.5 rounded bg-cyber-800 border border-cyber-700 text-emerald-300 text-xs">1</span>
+              </div>
+            </div>
+
+            <!-- Sandbox Canvas with Floating Overlay -->
+            <div class="relative bg-cyber-900/95 rounded-xl border border-cyber-700/60 p-1 min-h-[300px] flex items-center justify-center overflow-x-auto shadow-inner touch-none">
+              <svg id="sandbox-circuit-svg" class="w-full h-auto min-w-[620px] max-h-[350px] canvas-wiring" viewBox="0 0 740 310"></svg>
+            </div>
+
+            <div id="sandbox-gate-list" class="space-y-2"></div>
+          </div>
+
+          <div class="lg:col-span-5 space-y-3">
+            <!-- Synthesized vs Custom Target Comparison Card -->
+            <div class="bg-cyber-900/90 rounded-xl p-3.5 border border-cyber-700/60 space-y-2">
+              <div class="flex items-center justify-between">
+                <span class="text-[11px] font-mono text-cyan-400 uppercase">Target Goal Expression</span>
+                <span id="sandbox-goal-status" class="text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-amber-950 border border-amber-600 text-amber-300">Mismatch</span>
+              </div>
+              <div id="sandbox-target-display" class="text-xs sm:text-sm font-mono font-bold text-white bg-cyber-850 p-2.5 rounded-lg border border-cyan-500/30 text-cyan-200">
+                Target: Y = A'B + AB' (XOR)
+              </div>
+              <div class="text-[11px] font-mono text-slate-400 mt-1">
+                Your Circuit: <strong id="sandbox-boolean-expr" class="text-emerald-300">F(A, B) = NAND(A, B)</strong>
+              </div>
+            </div>
+
+            <div class="bg-cyber-900/90 rounded-xl p-3.5 border border-cyber-700/60 space-y-2">
+              <div class="flex items-center justify-between text-xs">
+                <span class="font-semibold text-white">Full Truth Table Comparison</span>
+                <span class="font-mono text-cyan-400" id="sandbox-match-label">Target vs Actual</span>
+              </div>
+              <table class="w-full text-center text-xs font-mono">
+                <thead>
+                  <tr class="border-b border-cyber-700 text-slate-400">
+                    <th class="py-1.5 bg-cyber-850">A</th>
+                    <th class="py-1.5 bg-cyber-850">B</th>
+                    <th class="py-1.5 bg-cyber-850 text-cyan-400">Target</th>
+                    <th class="py-1.5 bg-cyber-850 text-slate-200">Circuit</th>
+                    <th class="py-1.5 bg-cyber-850">Status</th>
+                  </tr>
+                </thead>
+                <tbody id="sandbox-table-body" class="divide-y divide-cyber-800"></tbody>
+              </table>
+            </div>
+          </div>
+        </div>
+      </div>
+    </section>
+
+  </main>
+
+  <!-- ============================================================== -->
+  <!-- FLOATING LIGHTBULB HINT & WALKTHROUGH SYSTEM (BOTTOM RIGHT)     -->
+  <!-- ============================================================== -->
+  <div class="fixed bottom-5 right-5 z-50 flex flex-col items-end gap-2.5">
+    
+    <!-- Step 1: Pop-up Contextual Hint Bubble (Hidden until bulb tapped) -->
+    <div id="hint-bubble" class="hidden max-w-xs sm:max-w-sm bg-cyber-900/95 border border-amber-500/50 rounded-2xl p-4 shadow-2xl backdrop-blur-md transition-all">
+      <div class="flex items-start justify-between gap-2 border-b border-cyber-800 pb-2 mb-2">
+        <div class="flex items-center gap-1.5 text-amber-400 font-bold text-xs">
+          <i data-lucide="lightbulb" class="w-4 h-4 text-amber-400"></i>
+          <span id="hint-bubble-title">Textbook Hint</span>
+        </div>
+        <button onclick="closeHintBubble()" class="text-slate-400 hover:text-white p-0.5">
+          <i data-lucide="x" class="w-3.5 h-3.5"></i>
+        </button>
+      </div>
+
+      <div id="hint-bubble-text" class="text-xs text-slate-300 leading-relaxed font-sans mb-3">
+        <!-- Injected dynamically -->
+      </div>
+
+      <button onclick="openFullWalkthrough()" class="w-full py-2 px-3 rounded-xl bg-amber-500/20 hover:bg-amber-500/30 border border-amber-500/40 text-amber-300 text-xs font-bold transition flex items-center justify-center gap-1.5">
+        <i data-lucide="book-open" class="w-3.5 h-3.5"></i>
+        <span>View Full Textbook Solution Walkthrough</span>
+      </button>
+    </div>
+
+    <!-- Idle Nudge Tooltip (Shown after extended idle) -->
+    <div id="idle-nudge-tooltip" class="hidden bg-amber-950/90 text-amber-300 border border-amber-500/60 px-3 py-1.5 rounded-full text-xs font-mono shadow-lg flex items-center gap-1.5 animate-bounce">
+      <span>Stuck? Tap for a hint!</span>
+    </div>
+
+    <!-- The Floating Lightbulb Button -->
+    <button id="floating-bulb-btn" onclick="handleBulbClick()" class="w-13 h-13 p-3.5 rounded-full bg-gradient-to-tr from-amber-500 to-amber-300 text-slate-950 shadow-xl shadow-amber-500/30 hover:scale-105 active:scale-95 transition-transform flex items-center justify-center cursor-pointer border-2 border-amber-200" title="Need a hint?">
+      <i data-lucide="lightbulb" class="w-6 h-6 stroke-[2.2]"></i>
+    </button>
+  </div>
+
+  <!-- Footer -->
+  <footer class="border-t border-cyber-700/50 bg-cyber-900/60 py-3 px-4 text-center text-xs text-slate-500 font-mono">
+    NANDcraft: The Universal Gate Workshop &bull; Digital Logic & Computer Technology
+  </footer>
+
+  <!-- ============================================================== -->
+  <!-- JAVASCRIPT APPLICATION CORE LOGIC                              -->
+  <!-- ============================================================== -->
+  <script>
+    // --- Web Audio Synth Engine ---
+    class SoundEngine {
+      constructor() {
+        this.ctx = null;
+        this.enabled = true;
+      }
+      init() {
+        if (!this.ctx) {
+          const AudioContext = window.AudioContext || window.webkitAudioContext;
+          if (AudioContext) this.ctx = new AudioContext();
+        }
+      }
+      playToggle() {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'triangle';
+          osc.frequency.setValueAtTime(440, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(700, this.ctx.currentTime + 0.04);
+          gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.04);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.04);
+        } catch(e) {}
+      }
+      playSnap() {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sine';
+          osc.frequency.setValueAtTime(750, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(1150, this.ctx.currentTime + 0.05);
+          gain.gain.setValueAtTime(0.08, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.05);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.05);
+        } catch(e) {}
+      }
+      playDisconnect() {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const osc = this.ctx.createOscillator();
+          const gain = this.ctx.createGain();
+          osc.type = 'sawtooth';
+          osc.frequency.setValueAtTime(320, this.ctx.currentTime);
+          osc.frequency.exponentialRampToValueAtTime(160, this.ctx.currentTime + 0.06);
+          gain.gain.setValueAtTime(0.06, this.ctx.currentTime);
+          gain.gain.exponentialRampToValueAtTime(0.001, this.ctx.currentTime + 0.06);
+          osc.connect(gain);
+          gain.connect(this.ctx.destination);
+          osc.start();
+          osc.stop(this.ctx.currentTime + 0.06);
+        } catch(e) {}
+      }
+      playVictory() {
+        if (!this.enabled) return;
+        try {
+          this.init();
+          if (!this.ctx) return;
+          const freqs = [523.25, 659.25, 783.99, 1046.50];
+          freqs.forEach((f, idx) => {
+            const osc = this.ctx.createOscillator();
+            const gain = this.ctx.createGain();
+            osc.type = 'sine';
+            osc.frequency.value = f;
+            const start = this.ctx.currentTime + idx * 0.07;
+            gain.gain.setValueAtTime(0.12, start);
+            gain.gain.exponentialRampToValueAtTime(0.001, start + 0.25);
+            osc.connect(gain);
+            gain.connect(this.ctx.destination);
+            osc.start(start);
+            osc.stop(start + 0.25);
+          });
+        } catch(e) {}
+      }
+    }
+    const sound = new SoundEngine();
+
+    function toggleAudio() {
+      sound.enabled = !sound.enabled;
+      const icons = [document.getElementById('sound-icon'), document.getElementById('sound-icon-mobile')];
+      const text = document.getElementById('sound-text');
+      if (sound.enabled) {
+        icons.forEach(ic => ic && ic.setAttribute('data-lucide', 'volume-2'));
+        if (text) text.textContent = 'Audio ON';
+        sound.playSnap();
+      } else {
+        icons.forEach(ic => ic && ic.setAttribute('data-lucide', 'volume-x'));
+        if (text) text.textContent = 'Audio OFF';
+      }
+      lucide.createIcons();
+    }
+
+    // ==============================================================
+    // EXERCISE & PROBLEM DEFINITIONS WITH TEXTBOOK BOOLEAN EQUATIONS
+    // ==============================================================
+    const CIRCUIT_PROBLEMS = {
+      // --- BASICS MODE ---
+      NOT: {
+        category: 'basics',
+        name: 'NOT',
+        title: 'Inverter (NOT Gate)',
+        equation: "Y = A'",
+        optimalCount: 1,
+        inputs: ['A'],
+        targetFunc: (A) => (A === 1 ? 0 : 1),
+        hint: `To invert signal A, connect input A to <strong>both</strong> input pins of NAND Gate N1. By idempotence: (A &middot; A)' = A'.`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">Textbook Derivation:</h4>
+          <p>By Boolean algebra idempotency law, <code class="text-cyan-200">X &middot; X = X</code>.</p>
+          <p>Hence: <code class="text-cyan-200">NAND(A, A) = (A &middot; A)' = A' = NOT(A)</code>.</p>
+          <h4 class="font-bold text-cyan-300 mt-2">Target Wiring:</h4>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1 Pin 1 &rarr; A</li>
+            <li>N1 Pin 2 &rarr; A</li>
+            <li>Circuit Output &rarr; N1</li>
+          </ul>
+        `
+      },
+      AND: {
+        category: 'basics',
+        name: 'AND',
+        title: 'Conjunction (AND Gate)',
+        equation: "Y = A · B",
+        optimalCount: 2,
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A === 1 && B === 1 ? 1 : 0),
+        hint: `NAND produces (A &middot; B)'. Invert that result with a second NAND gate configured as an inverter to retrieve A &middot; B.`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">Double Inversion Law:</h4>
+          <p>Double negation cancels: <code class="text-cyan-200">(X')' = X</code>.</p>
+          <p>1. <code class="text-cyan-200">N1 = NAND(A, B) = (A &middot; B)'</code></p>
+          <p>2. <code class="text-cyan-200">N2 = NAND(N1, N1) = ((A &middot; B)')' = A &middot; B</code></p>
+          <h4 class="font-bold text-cyan-300 mt-2">Target Wiring:</h4>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B</li>
+            <li>N2: Pin 1 &rarr; N1, Pin 2 &rarr; N1</li>
+            <li>Circuit Output &rarr; N2</li>
+          </ul>
+        `
+      },
+      OR: {
+        category: 'basics',
+        name: 'OR',
+        title: 'Disjunction (OR Gate)',
+        equation: "Y = A + B",
+        optimalCount: 3,
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A === 1 || B === 1 ? 1 : 0),
+        hint: `Apply De Morgan's Law: A + B = (A' &middot; B')'. Invert A with N1, invert B with N2, then feed both into N3!`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">De Morgan's Second Theorem:</h4>
+          <p><code class="text-cyan-200">A + B = (A' &middot; B')' = NAND(A', B')</code></p>
+          <p>1. Invert A: <code class="text-cyan-200">N1 = NAND(A, A) = A'</code></p>
+          <p>2. Invert B: <code class="text-cyan-200">N2 = NAND(B, B) = B'</code></p>
+          <p>3. Combine: <code class="text-cyan-200">N3 = NAND(N1, N2) = (A' &middot; B')' = A + B</code></p>
+          <h4 class="font-bold text-cyan-300 mt-2">Target Wiring:</h4>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; A</li>
+            <li>N2: Pin 1 &rarr; B, Pin 2 &rarr; B</li>
+            <li>N3: Pin 1 &rarr; N1, Pin 2 &rarr; N2</li>
+            <li>Circuit Output &rarr; N3</li>
+          </ul>
+        `
+      },
+      NOR: {
+        category: 'basics',
+        name: 'NOR',
+        title: 'NOR Gate',
+        equation: "Y = (A + B)'",
+        optimalCount: 4,
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A === 0 && B === 0 ? 1 : 0),
+        hint: `Build the 3-NAND OR structure first (N1, N2, N3). Then feed output N3 into N4 wired as an inverter!`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">NOR = NOT(OR):</h4>
+          <p>1. <code class="text-cyan-200">N1 = NAND(A, A) = A'</code></p>
+          <p>2. <code class="text-cyan-200">N2 = NAND(B, B) = B'</code></p>
+          <p>3. <code class="text-cyan-200">N3 = NAND(N1, N2) = A + B</code></p>
+          <p>4. <code class="text-cyan-200">N4 = NAND(N3, N3) = (A + B)' = NOR(A, B)</code></p>
+          <h4 class="font-bold text-cyan-300 mt-2">Target Wiring:</h4>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1: A & A | N2: B & B</li>
+            <li>N3: N1 & N2 | N4: N3 & N3</li>
+            <li>Circuit Output &rarr; N4</li>
+          </ul>
+        `
+      },
+      XOR: {
+        category: 'basics',
+        name: 'XOR',
+        title: 'Exclusive-OR (XOR Gate)',
+        equation: "Y = A ⊕ B = A'B + AB'",
+        optimalCount: 4,
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A !== B ? 1 : 0),
+        hint: `Classic minimal 4-NAND topology: N1 = NAND(A, B). Then N2 = NAND(A, N1), N3 = NAND(N1, B), and N4 = NAND(N2, N3).`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">Minimal 4-NAND XOR Theorem:</h4>
+          <p>Notice that <code class="text-cyan-200">A &oplus; B = A(AB)' + B(AB)'</code>.</p>
+          <p>1. Common core: <code class="text-cyan-200">N1 = NAND(A, B) = (AB)'</code></p>
+          <p>2. Top branch: <code class="text-cyan-200">N2 = NAND(A, N1) = (A &middot; (AB)')'</code></p>
+          <p>3. Bottom branch: <code class="text-cyan-200">N3 = NAND(N1, B) = ((AB)' &middot; B)'</code></p>
+          <p>4. Output stage: <code class="text-cyan-200">N4 = NAND(N2, N3) = A &oplus; B</code></p>
+          <h4 class="font-bold text-cyan-300 mt-2">Target Wiring:</h4>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B</li>
+            <li>N2: Pin 1 &rarr; A, Pin 2 &rarr; N1</li>
+            <li>N3: Pin 1 &rarr; N1, Pin 2 &rarr; B</li>
+            <li>N4: Pin 1 &rarr; N2, Pin 2 &rarr; N3</li>
+            <li>Circuit Output &rarr; N4</li>
+          </ul>
+        `
+      },
+      XNOR: {
+        category: 'basics',
+        name: 'XNOR',
+        title: 'Equivalence (XNOR Gate)',
+        equation: "Y = (A ⊕ B)' = AB + A'B'",
+        optimalCount: 5,
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A === B ? 1 : 0),
+        hint: `XNOR is the inverse of XOR. Build the 4-NAND XOR circuit (N1 to N4), and invert N4 using gate N5!`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">XNOR = NOT(XOR):</h4>
+          <p>Wire gates N1 through N4 to produce XOR, then connect N4 to both inputs of N5 to invert: <code class="text-cyan-200">N5 = NAND(N4, N4) = A &odot; B</code>.</p>
+          <h4 class="font-bold text-cyan-300 mt-2">Target Wiring:</h4>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1..N4: Standard XOR circuit</li>
+            <li>N5: Pin 1 &rarr; N4, Pin 2 &rarr; N4</li>
+            <li>Circuit Output &rarr; N5</li>
+          </ul>
+        `
+      },
+
+      // --- ADVANCED 3-WIRE PROBLEMS (HUMAN-READABLE TEXTBOOK TITLES & EXPLICIT FORMULAS) ---
+      MUX: {
+        category: 'advanced',
+        name: '2:1 Multiplexer',
+        title: '2-to-1 Multiplexer (Data A, Data B, Select S)',
+        equation: "Y = (S' · A) + (S · B)",
+        optimalCount: 4,
+        inputs: ['A', 'B', 'C'], // 'C' acts as Select S
+        inputLabels: { A: 'A (D0)', B: 'B (D1)', C: 'S (Sel)' },
+        targetFunc: (A, B, S) => (S === 0 ? A : B),
+        hint: `SOP equation: Y = (A &middot; S') + (B &middot; S). Invert S with N1. Compute NAND(A, S') with N2, and NAND(B, S) with N3. Combine with N4!`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">Multiplexer NAND Architecture:</h4>
+          <p>Boolean equation: <code class="text-cyan-200">Y = (A &middot; S') + (B &middot; S)</code></p>
+          <p>Using De Morgan's: <code class="text-cyan-200">Y = NAND( (A &middot; S')', (B &middot; S)' )</code></p>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1 (Invert S): Pin 1 &rarr; C, Pin 2 &rarr; C</li>
+            <li>N2: Pin 1 &rarr; A, Pin 2 &rarr; N1 (computes (A &middot; S')')</li>
+            <li>N3: Pin 1 &rarr; B, Pin 2 &rarr; C (computes (B &middot; S)')</li>
+            <li>N4: Pin 1 &rarr; N2, Pin 2 &rarr; N3</li>
+            <li>Circuit Output &rarr; N4</li>
+          </ul>
+        `
+      },
+      MAJORITY: {
+        category: 'advanced',
+        name: 'Majority Voter',
+        title: '3-Input Majority Voter [AB + BC + AC]',
+        equation: "Y = AB + BC + AC",
+        optimalCount: 4,
+        inputs: ['A', 'B', 'C'],
+        inputLabels: { A: 'A', B: 'B', C: 'C' },
+        targetFunc: (A, B, C) => ((A + B + C) >= 2 ? 1 : 0),
+        hint: `Majority = (A&middot;B) + (B&middot;C) + (A&middot;C). Pairwise NAND terms: N1=NAND(A,B), N2=NAND(B,C), N3=NAND(A,C). Combine through downstream NAND!`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">3-Input Majority Function:</h4>
+          <p>Equation: <code class="text-cyan-200">Y = AB + BC + AC = ((AB)' &middot; (BC)' &middot; (AC)')'</code></p>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B</li>
+            <li>N2: Pin 1 &rarr; B, Pin 2 &rarr; C</li>
+            <li>N3: Pin 1 &rarr; A, Pin 2 &rarr; C</li>
+            <li>N4: Combine into final stage</li>
+          </ul>
+        `
+      },
+      PARITY3: {
+        category: 'advanced',
+        name: '3-Input Parity',
+        title: '3-Input Odd Parity [A ⊕ B ⊕ C]',
+        equation: "Y = A ⊕ B ⊕ C",
+        optimalCount: 5,
+        inputs: ['A', 'B', 'C'],
+        inputLabels: { A: 'A', B: 'B', C: 'C' },
+        targetFunc: (A, B, C) => ((A + B + C) % 2 === 1 ? 1 : 0),
+        hint: `Parity is odd when the sum of 1s is odd. Chain XOR stages: first XOR(A, B), then XOR the result with C!`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">3-Variable Parity Generator:</h4>
+          <p><code class="text-cyan-200">Parity = A &oplus; B &oplus; C</code></p>
+          <p>Stage 1 creates <code class="text-cyan-200">X = A &oplus; B</code> using 4 NAND gates. Stage 2 evaluates <code class="text-cyan-200">X &oplus; C</code>.</p>
+        `
+      },
+      SOP: {
+        category: 'advanced',
+        name: 'Sum of Products',
+        title: 'Sum-of-Products: [(A · B) + (B · C)]',
+        equation: "Y = (A · B) + (B · C)",
+        optimalCount: 3,
+        inputs: ['A', 'B', 'C'],
+        inputLabels: { A: 'A', B: 'B', C: 'C' },
+        targetFunc: (A, B, C) => ((A === 1 && B === 1) || (B === 1 && C === 1) ? 1 : 0),
+        hint: `Direct NAND-NAND logic! N1 = NAND(A, B), N2 = NAND(B, C), then N3 = NAND(N1, N2). Two levels of NAND directly evaluate Sum-of-Products!`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">Two-Level NAND-NAND Equivalence:</h4>
+          <p>By De Morgan's: <code class="text-cyan-200">(AB) + (BC) = ((AB)' &middot; (BC)')' = NAND( NAND(A, B), NAND(B, C) )</code></p>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B</li>
+            <li>N2: Pin 1 &rarr; B, Pin 2 &rarr; C</li>
+            <li>N3: Pin 1 &rarr; N1, Pin 2 &rarr; N2</li>
+            <li>Circuit Output &rarr; N3</li>
+          </ul>
+        `
+      }
+    };
+
+    // ==============================================================
+    // APPLICATION STATE
+    // ==============================================================
+    let currentMode = 'basics'; // 'basics', 'advanced', 'quiz', 'sandbox'
+    let currentProblemKey = 'NOT';
+    let circuitGates = [];
+    let circuitOutput = 'N1';
+    let testInputs = { A: 1, B: 0, C: 0 };
+    let hasCelebrated = false;
+
+    // Dual wire routing state (click-then-tap OR drag)
+    let wireRouting = {
+      active: false,
+      sourceId: null,     // 'A', 'B', 'C', 'N1', etc.
+      startCoord: { x: 0, y: 0 },
+      currentCoord: { x: 0, y: 0 },
+      hoveredPort: null,  // { gateIdx, pinIdx, coord }
+      isDragging: false
+    };
+
+    // Idle timer for lightbulb hint prompt (Set to 100 seconds)
+    let idleSeconds = 0;
+    let idleInterval = null;
+    const IDLE_THRESHOLD = 100;
+
+    // Sandbox state & custom expression parser
+    let sandboxGates = [{ in1: 'A', in2: 'B' }];
+    let sandboxInputs = { A: 1, B: 0 };
+    let sandboxOutput = 'N1';
+    let sandboxCustomTargetExpr = "A'B + AB'";
+    let sandboxCustomTargetFunc = (a, b) => (a !== b ? 1 : 0);
+
+    // Quiz state with fully illustrated multi-gate schematics
+    let quizIndex = 0;
+    const QUIZ_QUESTIONS = [
+      {
+        tag: "DRILL 1 OF 6",
+        title: "Single Tied NAND Gate",
+        desc: "Inputs 1 and 2 are tied together and fed signal A. Deduce output Y.",
+        circuitType: 'SINGLE_NOT',
+        inputs: ['A'],
+        targetFunc: (A) => (A === 1 ? 0 : 1),
+        userAnswers: [null, null]
+      },
+      {
+        tag: "DRILL 2 OF 6",
+        title: "NAND Followed by Inverter",
+        desc: "Gate N1 computes (A · B)'. Gate N2 inverts N1's output. Deduce output Y.",
+        circuitType: 'AND_CIRCUIT',
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A === 1 && B === 1 ? 1 : 0),
+        userAnswers: [null, null, null, null]
+      },
+      {
+        tag: "DRILL 3 OF 6",
+        title: "De Morgan OR Configuration",
+        desc: "Signals A and B are inverted by N1 and N2, then merged into N3.",
+        circuitType: 'OR_CIRCUIT',
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A === 1 || B === 1 ? 1 : 0),
+        userAnswers: [null, null, null, null]
+      },
+      {
+        tag: "DRILL 4 OF 6",
+        title: "Standard 2-Input NAND Gate",
+        desc: "Evaluate the raw truth table for a 2-input NAND gate.",
+        circuitType: 'BASIC_NAND',
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (!(A === 1 && B === 1) ? 1 : 0),
+        userAnswers: [null, null, null, null]
+      },
+      {
+        tag: "DRILL 5 OF 6",
+        title: "Complete 4-NAND Exclusive-OR (XOR)",
+        desc: "Examine the 4 cross-coupled NAND gates. Determine the composite truth table for output N4.",
+        circuitType: 'XOR_4NAND',
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A !== b_val(A, B) ? 1 : 0), // handled properly in targetFunc
+        userAnswers: [null, null, null, null]
+      },
+      {
+        tag: "DRILL 6 OF 6",
+        title: "Complete 4-NAND NOR Synthesizer",
+        desc: "Signals A and B pass through inverters N1 and N2, into OR-gate N3, and finally inverter N4.",
+        circuitType: 'NOR_4NAND',
+        inputs: ['A', 'B'],
+        targetFunc: (A, B) => (A === 0 && B === 0 ? 1 : 0),
+        userAnswers: [null, null, null, null]
+      }
+    ];
+
+    // Helper for Drill 5 targetFunc
+    function b_val(a, b) {
+      return b;
+    }
+    QUIZ_QUESTIONS[4].targetFunc = (A, B) => (A !== B ? 1 : 0);
+
+    // ==============================================================
+    // INITIALIZATION
+    // ==============================================================
+    window.addEventListener('DOMContentLoaded', () => {
+      lucide.createIcons();
+      buildProblemChips('basics');
+      loadCircuitProblem('NOT', true);
+      initQuiz();
+      initSandbox();
+
+      // Dual interaction window listeners
+      window.addEventListener('mousemove', handleGlobalMouseMove);
+      window.addEventListener('mouseup', handleGlobalMouseUp);
+      window.addEventListener('touchmove', handleGlobalTouchMove, { passive: false });
+      window.addEventListener('touchend', handleGlobalTouchEnd);
+      window.addEventListener('keydown', (e) => {
+        if (e.key === 'Escape') cancelWiringMode();
+      });
+
+      // Start idle counter for hint nudge
+      startIdleTimer();
+    });
+
+    function resetIdleTimer() {
+      idleSeconds = 0;
+      const tooltip = document.getElementById('idle-nudge-tooltip');
+      const bulb = document.getElementById('floating-bulb-btn');
+      if (tooltip) tooltip.classList.add('hidden');
+      if (bulb) bulb.classList.remove('glow-amber-pulse');
+    }
+
+    function startIdleTimer() {
+      if (idleInterval) clearInterval(idleInterval);
+      idleInterval = setInterval(() => {
+        idleSeconds++;
+        if (idleSeconds >= IDLE_THRESHOLD && !hasCelebrated) {
+          const tooltip = document.getElementById('idle-nudge-tooltip');
+          const bulb = document.getElementById('floating-bulb-btn');
+          if (tooltip) tooltip.classList.remove('hidden');
+          if (bulb) bulb.classList.add('glow-amber-pulse');
+        }
+      }, 1000);
+    }
+
+    // ==============================================================
+    // MODE SWITCHING & CHIPS
+    // ==============================================================
+    function switchMode(mode) {
+      sound.playToggle();
+      resetIdleTimer();
+      cancelWiringMode();
+      currentMode = mode;
+
+      const viewCircuit = document.getElementById('view-circuit');
+      const viewQuiz = document.getElementById('view-quiz');
+      const viewSandbox = document.getElementById('view-sandbox');
+
+      ['basics', 'advanced', 'quiz', 'sandbox'].forEach(m => {
+        const btn = document.getElementById(`tab-btn-${m}`);
+        if (btn) {
+          if (m === mode) {
+            btn.className = "px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 sm:gap-1.5 transition bg-cyan-500 text-slate-950 font-semibold shadow";
+          } else {
+            btn.className = "px-2.5 sm:px-3 py-1.5 rounded-lg flex items-center gap-1 sm:gap-1.5 transition text-slate-300 hover:text-white hover:bg-cyber-800";
+          }
+        }
+      });
+
+      if (mode === 'basics' || mode === 'advanced') {
+        viewCircuit.classList.remove('hidden');
+        viewQuiz.classList.add('hidden');
+        viewSandbox.classList.add('hidden');
+        buildProblemChips(mode);
+        const firstKey = mode === 'basics' ? 'NOT' : 'MUX';
+        loadCircuitProblem(firstKey, true);
+      } else if (mode === 'quiz') {
+        viewCircuit.classList.add('hidden');
+        viewQuiz.classList.remove('hidden');
+        viewSandbox.classList.add('hidden');
+        renderQuizExercise();
+      } else if (mode === 'sandbox') {
+        viewCircuit.classList.add('hidden');
+        viewQuiz.classList.add('hidden');
+        viewSandbox.classList.remove('hidden');
+        renderSandbox();
+      }
+
+      lucide.createIcons();
+    }
+
+    function buildProblemChips(category) {
+      const container = document.getElementById('problem-chips-container');
+      container.innerHTML = '';
+      const catLabel = document.getElementById('circuit-category-label');
+      catLabel.textContent = category === 'basics' ? 'Basics Mode: Standard Logic Gates' : 'Advanced Mode: Composite Textbook Circuits';
+
+      Object.keys(CIRCUIT_PROBLEMS).forEach(k => {
+        const prob = CIRCUIT_PROBLEMS[k];
+        if (prob.category !== category) return;
+
+        const btn = document.createElement('button');
+        btn.id = `chip-${k}`;
+        btn.onclick = () => loadCircuitProblem(k, true);
+        btn.className = `px-3 py-1.5 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition flex items-center gap-1.5 shrink-0 ${
+          k === currentProblemKey
+            ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
+            : 'bg-cyber-850 text-slate-300 hover:bg-cyber-800 border border-cyber-700/60'
+        }`;
+        btn.innerHTML = `<span class="w-1.5 h-1.5 rounded-full ${k === currentProblemKey ? 'bg-slate-950' : 'bg-cyan-400'}"></span> ${prob.name}`;
+        container.appendChild(btn);
+      });
+    }
+
+    // ==============================================================
+    // CIRCUIT PROBLEM LOADER (WITH EQUATION HEADER UPDATE)
+    // ==============================================================
+    function loadCircuitProblem(key, isCleanSlate = true) {
+      sound.playToggle();
+      resetIdleTimer();
+      cancelWiringMode();
+      currentProblemKey = key;
+      hasCelebrated = false;
+      const prob = CIRCUIT_PROBLEMS[key];
+
+      // Update chips UI
+      Object.keys(CIRCUIT_PROBLEMS).forEach(k => {
+        const el = document.getElementById(`chip-${k}`);
+        if (el) {
+          el.className = `px-3 py-1.5 rounded-xl text-xs font-mono font-bold whitespace-nowrap transition flex items-center gap-1.5 shrink-0 ${
+            k === key
+              ? 'bg-cyan-500 text-slate-950 shadow-md shadow-cyan-500/30'
+              : 'bg-cyber-850 text-slate-300 hover:bg-cyber-800 border border-cyber-700/60'
+          }`;
+        }
+      });
+
+      document.getElementById('circuit-target-heading').textContent = `Convert to NANDs: ${prob.title}`;
+      document.getElementById('circuit-badge').textContent = `TARGET: ${prob.name}`;
+      document.getElementById('optimal-count-label').textContent = `${prob.optimalCount} (optimal)`;
+      
+      // Update Prominent Header Boolean Equation
+      document.getElementById('circuit-target-equation').textContent = prob.equation;
+
+      // Update walkthrough & hints
+      document.getElementById('walkthrough-content').innerHTML = prob.walkthrough;
+      document.getElementById('hint-bubble-title').textContent = `${prob.name} Textbook Hint`;
+      document.getElementById('hint-bubble-text').innerHTML = `
+        <div class="mb-1 text-cyan-300 font-mono text-[11px] font-bold">Formula: ${prob.equation}</div>
+        <div>${prob.hint}</div>
+      `;
+
+      // Handle signal buttons visibility (A, B, and conditional C/S)
+      const btnB = document.getElementById('btn-input-B');
+      const btnC = document.getElementById('btn-input-C');
+      const thB = document.getElementById('th-b');
+      const thC = document.getElementById('th-c');
+      const vecCountLabel = document.getElementById('vector-count-label');
+
+      if (prob.inputs.length === 1) {
+        btnB.classList.add('hidden');
+        btnC.classList.add('hidden');
+        thB.classList.add('hidden');
+        thC.classList.add('hidden');
+        vecCountLabel.textContent = '2 Vectors';
+      } else if (prob.inputs.length === 2) {
+        btnB.classList.remove('hidden');
+        btnC.classList.add('hidden');
+        thB.classList.remove('hidden');
+        thC.classList.add('hidden');
+        vecCountLabel.textContent = '4 Vectors';
+      } else {
+        // 3-input circuit
+        btnB.classList.remove('hidden');
+        btnC.classList.remove('hidden');
+        thB.classList.remove('hidden');
+        thC.classList.remove('hidden');
+        const cLabel = prob.inputLabels?.C || 'C';
+        btnC.innerHTML = `<span class="w-2 h-2 rounded-full bg-slate-500"></span> ${cLabel} = 0`;
+        vecCountLabel.textContent = '8 Vectors';
+      }
+
+      // Initialize CLEAN SLATE: Start with optimal gate count or 1 gate, completely unwired (null)
+      if (isCleanSlate) {
+        circuitGates = [];
+        const initialCount = Math.min(prob.optimalCount, 4);
+        for (let i = 0; i < initialCount; i++) {
+          circuitGates.push({ in1: null, in2: null });
+        }
+        circuitOutput = `N${initialCount}`;
+      }
+
+      renderCircuitControls();
+      evaluateCircuit();
+    }
+
+    function resetCircuitSlate() {
+      sound.playToggle();
+      resetIdleTimer();
+      cancelWiringMode();
+      // Reset completely down to 1 unwired NAND gate
+      circuitGates = [{ in1: null, in2: null }];
+      circuitOutput = 'N1';
+      renderCircuitControls();
+      evaluateCircuit();
+    }
+
+    function addNandGate() {
+      sound.playToggle();
+      resetIdleTimer();
+      if (circuitGates.length >= 6) return;
+      circuitGates.push({ in1: null, in2: null });
+      circuitOutput = `N${circuitGates.length}`;
+      renderCircuitControls();
+      evaluateCircuit();
+    }
+
+    function removeCircuitGate(idx) {
+      sound.playToggle();
+      resetIdleTimer();
+      if (circuitGates.length <= 1) return;
+      circuitGates.splice(idx, 1);
+      const maxGateIdx = circuitGates.length;
+
+      circuitGates.forEach(g => {
+        if (g.in1 && g.in1.startsWith('N')) {
+          const num = parseInt(g.in1.substring(1));
+          if (num > maxGateIdx) g.in1 = null;
+        }
+        if (g.in2 && g.in2.startsWith('N')) {
+          const num = parseInt(g.in2.substring(1));
+          if (num > maxGateIdx) g.in2 = null;
+        }
+      });
+
+      if (circuitOutput.startsWith('N')) {
+        const outNum = parseInt(circuitOutput.substring(1));
+        if (outNum > maxGateIdx) circuitOutput = `N${maxGateIdx}`;
+      }
+
+      renderCircuitControls();
+      evaluateCircuit();
+    }
+
+    function updateGatePinDirect(gateIdx, pinIdx, val) {
+      sound.playSnap();
+      resetIdleTimer();
+      const v = (val === 'unconnected' || val === '') ? null : val;
+      if (pinIdx === 1) circuitGates[gateIdx].in1 = v;
+      else circuitGates[gateIdx].in2 = v;
+      evaluateCircuit();
+    }
+
+    function updateCircuitOutput(val) {
+      sound.playToggle();
+      circuitOutput = val;
+      document.getElementById('probe-pin-label').textContent = val;
+      evaluateCircuit();
+    }
+
+    function toggleCircuitInput(which) {
+      sound.playToggle();
+      resetIdleTimer();
+      testInputs[which] = testInputs[which] === 1 ? 0 : 1;
+      updateInputButtonVisuals();
+      evaluateCircuit();
+    }
+
+    function updateInputButtonVisuals() {
+      const prob = CIRCUIT_PROBLEMS[currentProblemKey];
+      ['A', 'B', 'C'].forEach(key => {
+        const btn = document.getElementById(`btn-input-${key}`);
+        if (!btn) return;
+        const val = testInputs[key];
+        const label = prob.inputLabels?.[key] || key;
+        btn.innerHTML = val === 1
+          ? `<span class="w-2 h-2 rounded-full bg-emerald-400 animate-ping"></span> ${label} = 1`
+          : `<span class="w-2 h-2 rounded-full bg-slate-500"></span> ${label} = 0`;
+        btn.className = `px-2.5 sm:px-3 py-1 rounded-lg font-mono text-xs font-bold border transition flex items-center gap-1.5 ${
+          val === 1
+            ? 'bg-emerald-950 border-emerald-500 text-emerald-300 shadow-sm shadow-emerald-500/30'
+            : 'bg-cyber-800 border-slate-600 text-slate-400'
+        }`;
+      });
+    }
+
+    function renderCircuitControls() {
+      document.getElementById('gate-count-label').textContent = circuitGates.length;
+      document.getElementById('probe-pin-label').textContent = circuitOutput;
+
+      const container = document.getElementById('gate-wiring-container');
+      const outputSelect = document.getElementById('circuit-output-select');
+      container.innerHTML = '';
+      outputSelect.innerHTML = '';
+
+      const prob = CIRCUIT_PROBLEMS[currentProblemKey];
+      const validInputs = [...prob.inputs];
+
+      circuitGates.forEach((_, idx) => {
+        const id = `N${idx + 1}`;
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = `Output ${id} (NAND ${idx + 1})`;
+        if (id === circuitOutput) opt.selected = true;
+        outputSelect.appendChild(opt);
+      });
+
+      circuitGates.forEach((gate, gIdx) => {
+        const gateId = `N${gIdx + 1}`;
+        const availableSources = [...validInputs];
+        for (let i = 0; i < circuitGates.length; i++) {
+          if (i !== gIdx) availableSources.push(`N${i + 1}`);
+        }
+
+        const row = document.createElement('div');
+        row.className = "p-2 rounded-lg bg-cyber-900 border border-cyber-700/80 flex flex-wrap items-center justify-between gap-2 text-xs font-mono";
+        row.innerHTML = `
+          <div class="flex items-center gap-2">
+            <span class="px-2 py-0.5 rounded bg-cyan-950 border border-cyan-800 text-cyan-400 font-bold">${gateId}</span>
+            <span class="text-slate-300 font-sans text-[11px]">NAND ${gIdx + 1}</span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <label class="text-slate-400">Pin 1:</label>
+            <select onchange="updateGatePinDirect(${gIdx}, 1, this.value)" class="bg-cyber-800 border border-cyber-700 rounded px-2 py-1 text-cyan-300 text-xs">
+              <option value="unconnected" ${gate.in1 === null ? 'selected' : ''}>-- Unwired --</option>
+              ${availableSources.map(s => `<option value="${s}" ${gate.in1 === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+
+            <label class="text-slate-400 ml-1">Pin 2:</label>
+            <select onchange="updateGatePinDirect(${gIdx}, 2, this.value)" class="bg-cyber-800 border border-cyber-700 rounded px-2 py-1 text-cyan-300 text-xs">
+              <option value="unconnected" ${gate.in2 === null ? 'selected' : ''}>-- Unwired --</option>
+              ${availableSources.map(s => `<option value="${s}" ${gate.in2 === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+
+            <button onclick="tieInputs(${gIdx})" title="Tie inputs for Inverter" class="px-2 py-1 rounded bg-cyber-800 hover:bg-cyber-700 border border-cyber-700 text-slate-300 text-[11px] ml-1">
+              Tie
+            </button>
+
+            ${circuitGates.length > 1 ? `
+              <button onclick="removeCircuitGate(${gIdx})" class="p-1 rounded text-rose-400 hover:bg-rose-950/40 ml-1" title="Delete Gate">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            ` : ''}
+          </div>
+        `;
+        container.appendChild(row);
+      });
+
+      document.getElementById('btn-add-gate').disabled = (circuitGates.length >= 6);
+      lucide.createIcons();
+    }
+
+    function tieInputs(gIdx) {
+      sound.playSnap();
+      resetIdleTimer();
+      const first = circuitGates[gIdx].in1 || 'A';
+      circuitGates[gIdx].in1 = first;
+      circuitGates[gIdx].in2 = first;
+      renderCircuitControls();
+      evaluateCircuit();
+    }
+
+    // ==============================================================
+    // SIMULATION ENGINE
+    // ==============================================================
+    function simulateLogic(gates, outId, inA, inB = 0, inC = 0) {
+      const wireValues = {
+        'A': inA,
+        'B': inB,
+        'C': inC
+      };
+      const visited = new Set();
+
+      function evalWire(wire) {
+        if (!wire) return 0;
+        if (wire in wireValues) return wireValues[wire];
+        if (wire.startsWith('N')) {
+          if (visited.has(wire)) return 0;
+          visited.add(wire);
+          const idx = parseInt(wire.substring(1)) - 1;
+          if (idx < 0 || idx >= gates.length) return 0;
+          const g = gates[idx];
+          if (!g.in1 || !g.in2) {
+            wireValues[wire] = 0;
+            return 0;
+          }
+          const v1 = evalWire(g.in1);
+          const v2 = evalWire(g.in2);
+          const out = (v1 === 1 && v2 === 1) ? 0 : 1;
+          wireValues[wire] = out;
+          visited.delete(wire);
+          return out;
+        }
+        return 0;
+      }
+
+      const finalVal = evalWire(outId);
+      return { output: finalVal, wireValues };
+    }
+
+    function evaluateCircuit() {
+      const prob = CIRCUIT_PROBLEMS[currentProblemKey];
+      const numInputs = prob.inputs.length;
+
+      let vectors = [];
+      if (numInputs === 1) {
+        vectors = [{ a: 0, b: 0, c: 0 }, { a: 1, b: 0, c: 0 }];
+      } else if (numInputs === 2) {
+        vectors = [
+          { a: 0, b: 0, c: 0 },
+          { a: 0, b: 1, c: 0 },
+          { a: 1, b: 0, c: 0 },
+          { a: 1, b: 1, c: 0 }
+        ];
+      } else {
+        for (let a = 0; a <= 1; a++) {
+          for (let b = 0; b <= 1; b++) {
+            for (let c = 0; c <= 1; c++) {
+              vectors.push({ a, b, c });
+            }
+          }
+        }
+      }
+
+      const hasAnyWire = circuitGates.some(g => g.in1 !== null || g.in2 !== null);
+
+      let matches = 0;
+      const tbody = document.getElementById('truth-table-body');
+      tbody.innerHTML = '';
+
+      const liveSim = simulateLogic(circuitGates, circuitOutput, testInputs.A, testInputs.B, testInputs.C);
+      const outLabel = document.getElementById('circuit-realtime-out');
+      outLabel.textContent = hasAnyWire ? liveSim.output : '-';
+      outLabel.className = `font-mono font-bold text-sm px-2.5 py-0.5 rounded border ${
+        hasAnyWire && liveSim.output === 1
+          ? 'bg-emerald-950 border-emerald-500 text-emerald-300'
+          : 'bg-cyber-800 border-slate-700 text-slate-400'
+      }`;
+
+      vectors.forEach(vec => {
+        let expected = 0;
+        if (numInputs === 1) expected = prob.targetFunc(vec.a);
+        else if (numInputs === 2) expected = prob.targetFunc(vec.a, vec.b);
+        else expected = prob.targetFunc(vec.a, vec.b, vec.c);
+
+        let actual = 0;
+        let isMatch = false;
+
+        if (hasAnyWire) {
+          const sim = simulateLogic(circuitGates, circuitOutput, vec.a, vec.b, vec.c);
+          actual = sim.output;
+          isMatch = (expected === actual);
+          if (isMatch) matches++;
+        }
+
+        const isCurrentActive = (numInputs === 1)
+          ? (vec.a === testInputs.A)
+          : (numInputs === 2)
+            ? (vec.a === testInputs.A && vec.b === testInputs.B)
+            : (vec.a === testInputs.A && vec.b === testInputs.B && vec.c === testInputs.C);
+
+        const tr = document.createElement('tr');
+        tr.className = `transition ${isCurrentActive ? 'bg-cyan-950/45 ring-1 ring-cyan-500/50' : 'hover:bg-cyber-800/40'}`;
+        tr.innerHTML = `
+          <td class="py-1.5 px-1 font-bold">${vec.a}</td>
+          ${numInputs >= 2 ? `<td class="py-1.5 px-1 font-bold">${vec.b}</td>` : ''}
+          ${numInputs >= 3 ? `<td class="py-1.5 px-1 font-bold">${vec.c}</td>` : ''}
+          <td class="py-1.5 px-1 font-bold text-cyan-400">${expected}</td>
+          <td class="py-1.5 px-1 font-bold ${!hasAnyWire ? 'text-slate-500' : isMatch ? 'text-emerald-400' : 'text-rose-400'}">${hasAnyWire ? actual : '-'}</td>
+          <td class="py-1.5 px-1">
+            ${!hasAnyWire
+              ? `<span class="text-slate-500 text-[10px]">Unwired</span>`
+              : isMatch
+                ? `<span class="inline-flex items-center gap-0.5 text-emerald-400 font-bold text-[10px]"><i data-lucide="check" class="w-3 h-3"></i> OK</span>`
+                : `<span class="inline-flex items-center gap-0.5 text-rose-400 font-bold text-[10px]"><i data-lucide="x" class="w-3 h-3"></i> Diff</span>`
+            }
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const percent = hasAnyWire ? Math.round((matches / vectors.length) * 100) : 0;
+      document.getElementById('match-percent').textContent = `${percent}%`;
+      document.getElementById('match-bar').style.width = `${percent}%`;
+
+      const valCard = document.getElementById('validation-card');
+      const valTitle = document.getElementById('validation-title');
+      const valSubtitle = document.getElementById('validation-subtitle');
+      const valIconBox = document.getElementById('validation-icon-box');
+      const successBanner = document.getElementById('success-banner');
+
+      if (!hasAnyWire) {
+        valCard.className = "bg-cyber-850 border border-cyber-700/70 rounded-2xl p-4 sm:p-5 shadow-xl transition-all";
+        valTitle.textContent = "Wiring Clean Slate";
+        valSubtitle.textContent = `Connect wires to match target equation ${prob.equation}.`;
+        valIconBox.className = "w-10 h-10 rounded-xl bg-slate-800 border border-slate-700 text-slate-400 flex items-center justify-center shrink-0";
+        valIconBox.innerHTML = '<i data-lucide="cable" class="w-5 h-5"></i>';
+        successBanner.classList.add('hidden');
+      } else if (percent === 100) {
+        valCard.className = "bg-cyber-850 border border-emerald-500/60 rounded-2xl p-4 sm:p-5 shadow-xl transition-all glow-emerald";
+        valTitle.textContent = "Equivalence Achieved!";
+        valSubtitle.textContent = `All ${vectors.length} vectors match ${prob.title}.`;
+        valIconBox.className = "w-10 h-10 rounded-xl bg-emerald-500/20 border border-emerald-500/40 text-emerald-400 flex items-center justify-center shrink-0";
+        valIconBox.innerHTML = '<i data-lucide="check-check" class="w-5 h-5"></i>';
+        successBanner.classList.remove('hidden');
+
+        if (!hasCelebrated) {
+          hasCelebrated = true;
+          sound.playVictory();
+          try {
+            confetti({
+              particleCount: 80,
+              spread: 60,
+              origin: { y: 0.7 },
+              colors: ['#06b6d4', '#10b981', '#38bdf8']
+            });
+          } catch(e) {}
+        }
+      } else {
+        hasCelebrated = false;
+        valCard.className = "bg-cyber-850 border border-cyber-700/70 rounded-2xl p-4 sm:p-5 shadow-xl transition-all";
+        valTitle.textContent = "Incomplete Solution";
+        valSubtitle.textContent = `${matches} of ${vectors.length} vectors match target ${prob.equation}.`;
+        valIconBox.className = "w-10 h-10 rounded-xl bg-amber-500/10 border border-amber-500/30 text-amber-400 flex items-center justify-center shrink-0";
+        valIconBox.innerHTML = '<i data-lucide="alert-circle" class="w-5 h-5"></i>';
+        successBanner.classList.add('hidden');
+      }
+
+      renderSchematic('circuit-svg', circuitGates, circuitOutput, liveSim.wireValues, 'circuit');
+      lucide.createIcons();
+    }
+
+    // ==============================================================
+    // RESPONSIVE SVG SCHEMATIC WITH DUAL ROUTING & NO SHIFTS
+    // ==============================================================
+    function getSvgPoint(svg, clientX, clientY) {
+      const pt = svg.createSVGPoint();
+      pt.x = clientX;
+      pt.y = clientY;
+      const ctm = svg.getScreenCTM();
+      if (!ctm) return { x: 0, y: 0 };
+      return pt.matrixTransform(ctm.inverse());
+    }
+
+    function renderSchematic(svgId, gates, activeOut, wireValues, mode = 'circuit') {
+      const svg = document.getElementById(svgId);
+      if (!svg) return;
+      svg.innerHTML = '';
+
+      const prob = (mode === 'circuit') ? CIRCUIT_PROBLEMS[currentProblemKey] : null;
+      const numInputs = prob ? prob.inputs.length : 2;
+
+      const rails = {};
+      if (numInputs === 1) {
+        rails['A'] = { x: 65, y: 165, val: wireValues['A'] || 0, label: 'A' };
+      } else if (numInputs === 2) {
+        rails['A'] = { x: 65, y: 110, val: wireValues['A'] || 0, label: 'A' };
+        rails['B'] = { x: 65, y: 220, val: wireValues['B'] || 0, label: 'B' };
+      } else {
+        rails['A'] = { x: 65, y: 80, val: wireValues['A'] || 0, label: prob.inputLabels?.A || 'A' };
+        rails['B'] = { x: 65, y: 165, val: wireValues['B'] || 0, label: prob.inputLabels?.B || 'B' };
+        rails['C'] = { x: 65, y: 250, val: wireValues['C'] || 0, label: prob.inputLabels?.C || 'C' };
+      }
+
+      const gateCount = gates.length;
+      const gatePositions = [];
+      if (gateCount === 1) {
+        gatePositions.push({ x: 380, y: 165 });
+      } else if (gateCount === 2) {
+        gatePositions.push({ x: 280, y: 165 });
+        gatePositions.push({ x: 490, y: 165 });
+      } else if (gateCount === 3) {
+        gatePositions.push({ x: 260, y: 95 });
+        gatePositions.push({ x: 260, y: 235 });
+        gatePositions.push({ x: 490, y: 165 });
+      } else if (gateCount === 4) {
+        gatePositions.push({ x: 220, y: 165 });
+        gatePositions.push({ x: 380, y: 90 });
+        gatePositions.push({ x: 380, y: 240 });
+        gatePositions.push({ x: 550, y: 165 });
+      } else {
+        gatePositions.push({ x: 200, y: 165 });
+        gatePositions.push({ x: 335, y: 90 });
+        gatePositions.push({ x: 335, y: 240 });
+        gatePositions.push({ x: 480, y: 165 });
+        gatePositions.push({ x: 615, y: 165 });
+      }
+
+      const inputPorts = [];
+      gates.forEach((_, idx) => {
+        const p = gatePositions[idx];
+        inputPorts.push({ gateIdx: idx, pinIdx: 1, x: p.x - 30, y: p.y - 12 });
+        inputPorts.push({ gateIdx: idx, pinIdx: 2, x: p.x - 30, y: p.y + 12 });
+      });
+
+      // Background Grid
+      const defs = document.createElementNS('http://www.w3.org/2000/svg', 'defs');
+      defs.innerHTML = `
+        <pattern id="grid-${mode}" width="22" height="22" patternUnits="userSpaceOnUse">
+          <circle cx="11" cy="11" r="1.2" fill="#1e293b" opacity="0.6" />
+        </pattern>
+      `;
+      svg.appendChild(defs);
+
+      const gridRect = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      gridRect.setAttribute('width', '100%');
+      gridRect.setAttribute('height', '100%');
+      gridRect.setAttribute('fill', `url(#grid-${mode})`);
+      svg.appendChild(gridRect);
+
+      function getSourceCoords(src) {
+        if (!src) return null;
+        if (src in rails) return { x: rails[src].x, y: rails[src].y };
+        if (src.startsWith('N')) {
+          const gIdx = parseInt(src.substring(1)) - 1;
+          if (gIdx >= 0 && gIdx < gatePositions.length) {
+            return { x: gatePositions[gIdx].x + 48, y: gatePositions[gIdx].y };
+          }
+        }
+        return null;
+      }
+
+      // 1. Draw Connected Wires
+      gates.forEach((g, gIdx) => {
+        const pos = gatePositions[gIdx];
+        const p1Dest = { x: pos.x - 30, y: pos.y - 12 };
+        const p2Dest = { x: pos.x - 30, y: pos.y + 12 };
+
+        if (g.in1) {
+          const s1 = getSourceCoords(g.in1);
+          if (s1) {
+            const v1 = wireValues[g.in1] || 0;
+            drawSchematicWire(svg, s1, p1Dest, v1 === 1, () => disconnectPinPort(mode, gIdx, 1));
+          }
+        }
+        if (g.in2) {
+          const s2 = getSourceCoords(g.in2);
+          if (s2) {
+            const v2 = wireValues[g.in2] || 0;
+            drawSchematicWire(svg, s2, p2Dest, v2 === 1, () => disconnectPinPort(mode, gIdx, 2));
+          }
+        }
+      });
+
+      // 2. Draw Input Terminals (Left Rail)
+      Object.keys(rails).forEach(key => {
+        const rail = rails[key];
+        const isHigh = rail.val === 1;
+        const isSelectedSource = (wireRouting.active && wireRouting.sourceId === key);
+
+        const group = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        group.setAttribute('class', 'cursor-pointer');
+
+        const hitArea = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        hitArea.setAttribute('cx', rail.x);
+        hitArea.setAttribute('cy', rail.y);
+        hitArea.setAttribute('r', '24');
+        hitArea.setAttribute('fill', 'transparent');
+        group.appendChild(hitArea);
+
+        const ring = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        ring.setAttribute('cx', rail.x);
+        ring.setAttribute('cy', rail.y);
+        ring.setAttribute('r', '17');
+        ring.setAttribute('fill', isSelectedSource ? '#083344' : isHigh ? '#064e3b' : '#0f172a');
+        ring.setAttribute('stroke', isSelectedSource ? '#38bdf8' : isHigh ? '#10b981' : '#475569');
+        ring.setAttribute('stroke-width', isSelectedSource ? '3' : '2');
+        if (isSelectedSource) ring.setAttribute('class', 'port-pulse');
+        group.appendChild(ring);
+
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', rail.x);
+        txt.setAttribute('y', rail.y + 4);
+        txt.setAttribute('text-anchor', 'middle');
+        txt.setAttribute('font-family', 'JetBrains Mono');
+        txt.setAttribute('font-weight', 'bold');
+        txt.setAttribute('font-size', '11');
+        txt.setAttribute('fill', isHigh ? '#34d399' : '#94a3b8');
+        txt.setAttribute('pointer-events', 'none');
+        txt.textContent = rail.label;
+        group.appendChild(txt);
+
+        group.addEventListener('mousedown', (e) => startWireRouting(mode, key, rail.x, rail.y, e));
+        group.addEventListener('touchstart', (e) => startWireRoutingTouch(mode, key, rail.x, rail.y, e), { passive: false });
+
+        svg.appendChild(group);
+      });
+
+      // 3. Draw NAND Gates
+      gates.forEach((gate, gIdx) => {
+        const pos = gatePositions[gIdx];
+        const gateId = `N${gIdx + 1}`;
+        const outVal = wireValues[gateId] !== undefined ? wireValues[gateId] : 0;
+        const isOutHigh = (outVal === 1);
+        const isSelectedSource = (wireRouting.active && wireRouting.sourceId === gateId);
+
+        const gateGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+
+        // NAND D-shape Body
+        const body = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const pathData = `M ${pos.x - 30} ${pos.y - 25} 
+                          L ${pos.x - 3} ${pos.y - 25} 
+                          A 25 25 0 0 1 ${pos.x - 3} ${pos.y + 25} 
+                          L ${pos.x - 30} ${pos.y + 25} Z`;
+        body.setAttribute('d', pathData);
+        body.setAttribute('fill', '#090e1a');
+        body.setAttribute('stroke', '#38bdf8');
+        body.setAttribute('stroke-width', '2');
+        gateGroup.appendChild(body);
+
+        // Inversion Bubble
+        const bubble = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        bubble.setAttribute('cx', pos.x + 26);
+        bubble.setAttribute('cy', pos.y);
+        bubble.setAttribute('r', '5.5');
+        bubble.setAttribute('fill', '#090e1a');
+        bubble.setAttribute('stroke', '#38bdf8');
+        bubble.setAttribute('stroke-width', '2');
+        gateGroup.appendChild(bubble);
+
+        // Gate ID
+        const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        txt.setAttribute('x', pos.x - 10);
+        txt.setAttribute('y', pos.y + 4);
+        txt.setAttribute('font-family', 'JetBrains Mono');
+        txt.setAttribute('font-weight', 'bold');
+        txt.setAttribute('font-size', '10');
+        txt.setAttribute('fill', '#f1f5f9');
+        txt.setAttribute('pointer-events', 'none');
+        txt.textContent = gateId;
+        gateGroup.appendChild(txt);
+
+        // Pin 1 & Pin 2
+        drawInteractiveInputPin(gateGroup, mode, gIdx, 1, pos.x - 30, pos.y - 12, gate.in1);
+        drawInteractiveInputPin(gateGroup, mode, gIdx, 2, pos.x - 30, pos.y + 12, gate.in2);
+
+        // Output Terminal Port
+        const outPortX = pos.x + 48;
+        const outPortY = pos.y;
+
+        const outGroup = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+        outGroup.setAttribute('class', 'cursor-pointer');
+
+        const outHit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        outHit.setAttribute('cx', outPortX);
+        outHit.setAttribute('cy', outPortY);
+        outHit.setAttribute('r', '22');
+        outHit.setAttribute('fill', 'transparent');
+        outGroup.appendChild(outHit);
+
+        const outLine = document.createElementNS('http://www.w3.org/2000/svg', 'line');
+        outLine.setAttribute('x1', pos.x + 31.5);
+        outLine.setAttribute('y1', pos.y);
+        outLine.setAttribute('x2', outPortX);
+        outLine.setAttribute('y2', pos.y);
+        outLine.setAttribute('stroke', isOutHigh ? '#10b981' : '#475569');
+        outLine.setAttribute('stroke-width', '2');
+        outGroup.appendChild(outLine);
+
+        const outCircle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+        outCircle.setAttribute('cx', outPortX);
+        outCircle.setAttribute('cy', outPortY);
+        outCircle.setAttribute('r', '7.5');
+        outCircle.setAttribute('fill', isSelectedSource ? '#083344' : isOutHigh ? '#065f46' : '#1e293b');
+        outCircle.setAttribute('stroke', isSelectedSource ? '#38bdf8' : isOutHigh ? '#10b981' : '#64748b');
+        outCircle.setAttribute('stroke-width', isSelectedSource ? '3' : '2');
+        if (isSelectedSource) outCircle.setAttribute('class', 'port-pulse');
+        outGroup.appendChild(outCircle);
+
+        outGroup.addEventListener('mousedown', (e) => startWireRouting(mode, gateId, outPortX, outPortY, e));
+        outGroup.addEventListener('touchstart', (e) => startWireRoutingTouch(mode, gateId, outPortX, outPortY, e), { passive: false });
+        gateGroup.appendChild(outGroup);
+
+        // Bit value
+        const bitBadge = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+        bitBadge.setAttribute('x', pos.x + 40);
+        bitBadge.setAttribute('y', pos.y - 12);
+        bitBadge.setAttribute('font-family', 'JetBrains Mono');
+        bitBadge.setAttribute('font-size', '11');
+        bitBadge.setAttribute('font-weight', 'bold');
+        bitBadge.setAttribute('fill', isOutHigh ? '#10b981' : '#64748b');
+        bitBadge.textContent = outVal;
+        gateGroup.appendChild(bitBadge);
+
+        svg.appendChild(gateGroup);
+
+        // Probed Output Marker
+        if (gateId === activeOut) {
+          const outLabelX = pos.x + 92;
+          const outLabelY = pos.y;
+
+          drawProbeWire(svg, { x: outPortX, y: outPortY }, { x: outLabelX - 22, y: outLabelY }, isOutHigh);
+
+          const probeBox = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+          probeBox.setAttribute('x', outLabelX - 20);
+          probeBox.setAttribute('y', outLabelY - 14);
+          probeBox.setAttribute('width', '56');
+          probeBox.setAttribute('height', '28');
+          probeBox.setAttribute('rx', '7');
+          probeBox.setAttribute('fill', isOutHigh ? '#064e3b' : '#0f172a');
+          probeBox.setAttribute('stroke', isOutHigh ? '#10b981' : '#475569');
+          probeBox.setAttribute('stroke-width', '2');
+          svg.appendChild(probeBox);
+
+          const probeText = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+          probeText.setAttribute('x', outLabelX + 8);
+          probeText.setAttribute('y', outLabelY + 4);
+          probeText.setAttribute('text-anchor', 'middle');
+          probeText.setAttribute('font-family', 'JetBrains Mono');
+          probeText.setAttribute('font-weight', 'bold');
+          probeText.setAttribute('font-size', '10');
+          probeText.setAttribute('fill', isOutHigh ? '#34d399' : '#94a3b8');
+          probeText.textContent = `OUT=${outVal}`;
+          svg.appendChild(probeText);
+        }
+      });
+
+      // 4. Active Tether / Drag preview curve
+      if (wireRouting.active) {
+        let destX = wireRouting.currentCoord.x;
+        let destY = wireRouting.currentCoord.y;
+
+        let snapped = null;
+        for (const port of inputPorts) {
+          const dist = Math.hypot(port.x - destX, port.y - destY);
+          if (dist < 28) {
+            snapped = port;
+            destX = port.x;
+            destY = port.y;
+            break;
+          }
+        }
+        wireRouting.hoveredPort = snapped;
+
+        const dragPath = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+        const dx = Math.abs(destX - wireRouting.startCoord.x) * 0.55;
+        const d = `M ${wireRouting.startCoord.x} ${wireRouting.startCoord.y} C ${wireRouting.startCoord.x + dx} ${wireRouting.startCoord.y}, ${destX - dx} ${destY}, ${destX} ${destY}`;
+        dragPath.setAttribute('d', d);
+        dragPath.setAttribute('fill', 'none');
+        dragPath.setAttribute('stroke', '#06b6d4');
+        dragPath.setAttribute('stroke-width', '2.5');
+        dragPath.setAttribute('stroke-dasharray', '5 3');
+        dragPath.setAttribute('filter', 'drop-shadow(0 0 8px #06b6d4)');
+        svg.appendChild(dragPath);
+
+        if (snapped) {
+          const snapRing = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+          snapRing.setAttribute('cx', destX);
+          snapRing.setAttribute('cy', destY);
+          snapRing.setAttribute('r', '11');
+          snapRing.setAttribute('fill', 'none');
+          snapRing.setAttribute('stroke', '#06b6d4');
+          snapRing.setAttribute('stroke-width', '2.5');
+          snapRing.setAttribute('class', 'port-pulse');
+          svg.appendChild(snapRing);
+        }
+      }
+    }
+
+    function drawInteractiveInputPin(parent, mode, gIdx, pinIdx, x, y, connectedVal) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'cursor-pointer');
+
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      hit.setAttribute('cx', x);
+      hit.setAttribute('cy', y);
+      hit.setAttribute('r', '20');
+      hit.setAttribute('fill', 'transparent');
+      g.appendChild(hit);
+
+      const isConnected = (connectedVal !== null);
+      const isWiringActive = wireRouting.active;
+
+      const circle = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      circle.setAttribute('cx', x);
+      circle.setAttribute('cy', y);
+      circle.setAttribute('r', '6.5');
+      circle.setAttribute('fill', isConnected ? '#0e7490' : '#1e293b');
+      circle.setAttribute('stroke', isWiringActive ? '#38bdf8' : isConnected ? '#06b6d4' : '#64748b');
+      circle.setAttribute('stroke-width', isWiringActive ? '2.5' : '1.8');
+      if (isWiringActive) circle.setAttribute('class', 'port-pulse');
+      g.appendChild(circle);
+
+      const handlePinActivation = (e) => {
+        e.stopPropagation();
+        resetIdleTimer();
+        if (wireRouting.active) {
+          connectWireToPort(mode, gIdx, pinIdx, wireRouting.sourceId);
+          cancelWiringMode();
+        } else if (isConnected) {
+          disconnectPinPort(mode, gIdx, pinIdx);
+        }
+      };
+
+      g.addEventListener('click', handlePinActivation);
+      parent.appendChild(g);
+    }
+
+    function drawSchematicWire(parent, from, to, isHigh, onDisconnect) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      g.setAttribute('class', 'cursor-pointer group');
+
+      const dx = Math.abs(to.x - from.x) * 0.55;
+      const d = `M ${from.x} ${from.y} C ${from.x + dx} ${from.y}, ${to.x - dx} ${to.y}, ${to.x} ${to.y}`;
+
+      const hit = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      hit.setAttribute('d', d);
+      hit.setAttribute('fill', 'none');
+      hit.setAttribute('stroke', 'transparent');
+      hit.setAttribute('stroke-width', '24');
+      g.appendChild(hit);
+
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', isHigh ? '#10b981' : '#334155');
+      path.setAttribute('stroke-width', isHigh ? '2.5' : '1.8');
+      if (isHigh) {
+        path.setAttribute('filter', 'drop-shadow(0 0 3px #10b981)');
+        path.setAttribute('class', 'wire-flow-high');
+      }
+      g.appendChild(path);
+
+      g.addEventListener('click', (e) => {
+        e.stopPropagation();
+        onDisconnect();
+      });
+
+      parent.appendChild(g);
+    }
+
+    function drawProbeWire(parent, from, to, isHigh) {
+      const path = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      const dx = Math.abs(to.x - from.x) * 0.5;
+      const d = `M ${from.x} ${from.y} C ${from.x + dx} ${from.y}, ${to.x - dx} ${to.y}, ${to.x} ${to.y}`;
+      path.setAttribute('d', d);
+      path.setAttribute('fill', 'none');
+      path.setAttribute('stroke', isHigh ? '#10b981' : '#334155');
+      path.setAttribute('stroke-width', isHigh ? '2.5' : '1.8');
+      if (isHigh) path.setAttribute('filter', 'drop-shadow(0 0 3px #10b981)');
+      parent.appendChild(path);
+    }
+
+    function disconnectPinPort(mode, gIdx, pinIdx) {
+      sound.playDisconnect();
+      resetIdleTimer();
+      if (mode === 'circuit') {
+        if (pinIdx === 1) circuitGates[gIdx].in1 = null;
+        else circuitGates[gIdx].in2 = null;
+        renderCircuitControls();
+        evaluateCircuit();
+      } else {
+        if (pinIdx === 1) sandboxGates[gIdx].in1 = null;
+        else sandboxGates[gIdx].in2 = null;
+        renderSandbox();
+      }
+    }
+
+    function connectWireToPort(mode, gIdx, pinIdx, sourceId) {
+      sound.playSnap();
+      resetIdleTimer();
+      if (mode === 'circuit') {
+        if (pinIdx === 1) circuitGates[gIdx].in1 = sourceId;
+        else circuitGates[gIdx].in2 = sourceId;
+        renderCircuitControls();
+        evaluateCircuit();
+      } else {
+        if (pinIdx === 1) sandboxGates[gIdx].in1 = sourceId;
+        else sandboxGates[gIdx].in2 = sourceId;
+        renderSandbox();
+      }
+    }
+
+    // ==============================================================
+    // DUAL ROUTING CONTROLLER: NO LAYOUT SHIFTING
+    // ==============================================================
+    function startWireRouting(mode, sourceId, startX, startY, e) {
+      e.preventDefault();
+      sound.playSnap();
+      resetIdleTimer();
+
+      wireRouting.active = true;
+      wireRouting.mode = mode;
+      wireRouting.sourceId = sourceId;
+      wireRouting.startCoord = { x: startX, y: startY };
+      wireRouting.currentCoord = { x: startX, y: startY };
+      wireRouting.hoveredPort = null;
+      wireRouting.isDragging = false;
+
+      // Show floating overlay banner without page reflow
+      const banner = document.getElementById('wiring-mode-banner');
+      const label = document.getElementById('wiring-source-label');
+      if (banner && label) {
+        label.textContent = sourceId;
+        banner.classList.remove('hidden');
+      }
+
+      refreshActiveCanvas();
+    }
+
+    function startWireRoutingTouch(mode, sourceId, startX, startY, e) {
+      if (e.touches.length > 0) {
+        e.preventDefault();
+        sound.playSnap();
+        resetIdleTimer();
+
+        const touch = e.touches[0];
+        const svg = document.getElementById(mode === 'circuit' ? 'circuit-svg' : 'sandbox-circuit-svg');
+        const coords = getSvgPoint(svg, touch.clientX, touch.clientY);
+
+        wireRouting.active = true;
+        wireRouting.mode = mode;
+        wireRouting.sourceId = sourceId;
+        wireRouting.startCoord = { x: startX, y: startY };
+        wireRouting.currentCoord = coords;
+        wireRouting.hoveredPort = null;
+        wireRouting.isDragging = false;
+
+        const banner = document.getElementById('wiring-mode-banner');
+        const label = document.getElementById('wiring-source-label');
+        if (banner && label) {
+          label.textContent = sourceId;
+          banner.classList.remove('hidden');
+        }
+
+        refreshActiveCanvas();
+      }
+    }
+
+    function cancelWiringMode() {
+      if (!wireRouting.active) return;
+      wireRouting.active = false;
+      wireRouting.hoveredPort = null;
+      wireRouting.isDragging = false;
+      const banner = document.getElementById('wiring-mode-banner');
+      if (banner) banner.classList.add('hidden');
+      refreshActiveCanvas();
+    }
+
+    function handleGlobalMouseMove(e) {
+      if (!wireRouting.active) return;
+      wireRouting.isDragging = true;
+      const svg = document.getElementById(wireRouting.mode === 'circuit' ? 'circuit-svg' : 'sandbox-circuit-svg');
+      if (!svg) return;
+      wireRouting.currentCoord = getSvgPoint(svg, e.clientX, e.clientY);
+      refreshActiveCanvas();
+    }
+
+    function handleGlobalTouchMove(e) {
+      if (!wireRouting.active || e.touches.length === 0) return;
+      e.preventDefault();
+      wireRouting.isDragging = true;
+      const touch = e.touches[0];
+      const svg = document.getElementById(wireRouting.mode === 'circuit' ? 'circuit-svg' : 'sandbox-circuit-svg');
+      if (!svg) return;
+      wireRouting.currentCoord = getSvgPoint(svg, touch.clientX, touch.clientY);
+      refreshActiveCanvas();
+    }
+
+    function handleGlobalMouseUp() {
+      if (!wireRouting.active) return;
+      if (wireRouting.isDragging && wireRouting.hoveredPort) {
+        const { gateIdx, pinIdx } = wireRouting.hoveredPort;
+        connectWireToPort(wireRouting.mode, gateIdx, pinIdx, wireRouting.sourceId);
+        cancelWiringMode();
+      }
+    }
+
+    function handleGlobalTouchEnd() {
+      if (!wireRouting.active) return;
+      if (wireRouting.isDragging && wireRouting.hoveredPort) {
+        const { gateIdx, pinIdx } = wireRouting.hoveredPort;
+        connectWireToPort(wireRouting.mode, gateIdx, pinIdx, wireRouting.sourceId);
+        cancelWiringMode();
+      }
+    }
+
+    function refreshActiveCanvas() {
+      if (wireRouting.mode === 'circuit') {
+        const sim = simulateLogic(circuitGates, circuitOutput, testInputs.A, testInputs.B, testInputs.C);
+        renderSchematic('circuit-svg', circuitGates, circuitOutput, sim.wireValues, 'circuit');
+      } else {
+        const sim = simulateLogic(sandboxGates, sandboxOutput, sandboxInputs.A, sandboxInputs.B);
+        renderSchematic('sandbox-circuit-svg', sandboxGates, sandboxOutput, sim.wireValues, 'sandbox');
+      }
+    }
+
+    // ==============================================================
+    // FLOATING LIGHTBULB HINT & WALKTHROUGH CONTROLLER
+    // ==============================================================
+    function handleBulbClick() {
+      sound.playToggle();
+      resetIdleTimer();
+      const hintBubble = document.getElementById('hint-bubble');
+      
+      if (hintBubble.classList.contains('hidden')) {
+        const prob = CIRCUIT_PROBLEMS[currentProblemKey];
+        document.getElementById('hint-bubble-title').textContent = `${prob.name} Hint`;
+        document.getElementById('hint-bubble-text').innerHTML = `
+          <div class="mb-1 text-cyan-300 font-mono text-[11px] font-bold">Equation: ${prob.equation}</div>
+          <div>${prob.hint}</div>
+        `;
+        hintBubble.classList.remove('hidden');
+      } else {
+        openFullWalkthrough();
+      }
+      lucide.createIcons();
+    }
+
+    function closeHintBubble() {
+      document.getElementById('hint-bubble').classList.add('hidden');
+    }
+
+    function openFullWalkthrough() {
+      closeHintBubble();
+      sound.playSnap();
+
+      const details = document.getElementById('walkthrough-details');
+      if (details) {
+        details.open = true;
+        details.scrollIntoView({ behavior: 'smooth', block: 'center' });
+        details.classList.add('ring-2', 'ring-cyan-400', 'glow-cyan');
+        setTimeout(() => {
+          details.classList.remove('ring-2', 'ring-cyan-400', 'glow-cyan');
+        }, 2200);
+      }
+    }
+
+    // ==============================================================
+    // TRUTH TABLE QUIZ CONTROLLER (ACCURATE MULTI-GATE SCHEMATICS)
+    // ==============================================================
+    function initQuiz() {
+      renderQuizExercise();
+    }
+
+    function renderQuizExercise() {
+      const q = QUIZ_QUESTIONS[quizIndex];
+      document.getElementById('quiz-tag').textContent = q.tag;
+      document.getElementById('quiz-title').textContent = q.title;
+      document.getElementById('quiz-desc').textContent = q.desc;
+
+      const thB = document.getElementById('quiz-th-b');
+      if (q.inputs.length === 1) thB.classList.add('hidden');
+      else thB.classList.remove('hidden');
+
+      const tbody = document.getElementById('quiz-table-body');
+      tbody.innerHTML = '';
+      const feedback = document.getElementById('quiz-feedback-box');
+      feedback.className = 'hidden';
+
+      const vectors = q.inputs.length === 1
+        ? [{ a: 0, b: 0 }, { a: 1, b: 0 }]
+        : [{ a: 0, b: 0 }, { a: 0, b: 1 }, { a: 1, b: 0 }, { a: 1, b: 1 }];
+
+      vectors.forEach((vec, idx) => {
+        const val = q.userAnswers[idx];
+        const tr = document.createElement('tr');
+        tr.className = "hover:bg-cyber-800/40 transition";
+        tr.innerHTML = `
+          <td class="py-2 px-3 font-bold">${vec.a}</td>
+          ${q.inputs.length > 1 ? `<td class="py-2 px-3 font-bold">${vec.b}</td>` : ''}
+          <td class="py-2 px-3">
+            <button onclick="toggleQuizAnswerCell(${idx})" class="w-16 py-1 rounded font-mono font-bold text-sm border transition ${
+              val === null ? 'bg-cyber-800 border-dashed border-cyber-700 text-slate-500' :
+              val === 1 ? 'bg-emerald-950 border-emerald-500 text-emerald-300' : 'bg-cyber-800 border-slate-600 text-slate-300'
+            }">
+              ${val === null ? '?' : val}
+            </button>
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      drawQuizFullSchematic(q.circuitType);
+      lucide.createIcons();
+    }
+
+    function toggleQuizAnswerCell(idx) {
+      sound.playToggle();
+      const q = QUIZ_QUESTIONS[quizIndex];
+      const cur = q.userAnswers[idx];
+      if (cur === null) q.userAnswers[idx] = 1;
+      else if (cur === 1) q.userAnswers[idx] = 0;
+      else q.userAnswers[idx] = null;
+      renderQuizExercise();
+    }
+
+    function evaluateQuizTable() {
+      const q = QUIZ_QUESTIONS[quizIndex];
+      const vectors = q.inputs.length === 1
+        ? [{ a: 0, b: 0 }, { a: 1, b: 0 }]
+        : [{ a: 0, b: 0 }, { a: 0, b: 1 }, { a: 1, b: 0 }, { a: 1, b: 1 }];
+
+      if (q.userAnswers.some(v => v === null)) {
+        displayQuizFeedback("Please toggle all '?' cells to either 0 or 1 before checking.", 'amber');
+        return;
+      }
+
+      let correct = true;
+      vectors.forEach((vec, idx) => {
+        const target = q.inputs.length === 1 ? q.targetFunc(vec.a) : q.targetFunc(vec.a, vec.b);
+        if (q.userAnswers[idx] !== target) correct = false;
+      });
+
+      if (correct) {
+        sound.playVictory();
+        try {
+          confetti({ particleCount: 50, spread: 50, origin: { y: 0.6 } });
+        } catch(e) {}
+        displayQuizFeedback("Correct! You accurately deduced the truth table output.", 'emerald');
+      } else {
+        sound.playDisconnect();
+        displayQuizFeedback("Some values are mismatched. Trace 0 and 1 signals through the gate logic.", 'rose');
+      }
+    }
+
+    function displayQuizFeedback(msg, color) {
+      const fb = document.getElementById('quiz-feedback-box');
+      fb.classList.remove('hidden');
+      if (color === 'emerald') {
+        fb.className = "p-3 rounded-xl text-xs font-semibold bg-emerald-950/80 border border-emerald-500/50 text-emerald-300 flex items-center gap-2";
+        fb.innerHTML = `<i data-lucide="check-circle" class="w-4 h-4 text-emerald-400"></i> ${msg}`;
+      } else if (color === 'rose') {
+        fb.className = "p-3 rounded-xl text-xs font-semibold bg-rose-950/80 border border-rose-500/50 text-rose-300 flex items-center gap-2";
+        fb.innerHTML = `<i data-lucide="x-circle" class="w-4 h-4 text-rose-400"></i> ${msg}`;
+      } else {
+        fb.className = "p-3 rounded-xl text-xs font-semibold bg-amber-950/80 border border-amber-500/50 text-amber-300 flex items-center gap-2";
+        fb.innerHTML = `<i data-lucide="alert-triangle" class="w-4 h-4 text-amber-400"></i> ${msg}`;
+      }
+      lucide.createIcons();
+    }
+
+    function nextQuizExercise() {
+      sound.playToggle();
+      quizIndex = (quizIndex + 1) % QUIZ_QUESTIONS.length;
+      QUIZ_QUESTIONS[quizIndex].userAnswers = QUIZ_QUESTIONS[quizIndex].userAnswers.map(() => null);
+      renderQuizExercise();
+    }
+
+    // --- ACCURATE SCHEMATICS WITH CLEAR LABELS FOR ALL 6 DRILLS ---
+    function drawQuizFullSchematic(type) {
+      const svg = document.getElementById('quiz-circuit-svg');
+      svg.innerHTML = '';
+
+      if (type === 'SINGLE_NOT') {
+        // Tied NOT
+        drawRailTerminal(svg, 45, 90, 'A');
+        drawNandMini(svg, 220, 90, 'N1');
+        drawWirePath(svg, 'M 45 90 L 140 90 L 140 78 L 190 78');
+        drawWirePath(svg, 'M 140 90 L 140 102 L 190 102');
+        drawWirePath(svg, 'M 252 90 L 360 90');
+        drawOutputTerminal(svg, 360, 90, 'Y = A\'');
+      } else if (type === 'AND_CIRCUIT') {
+        // AND = NAND + Inverter
+        drawRailTerminal(svg, 45, 65, 'A');
+        drawRailTerminal(svg, 45, 115, 'B');
+        drawNandMini(svg, 150, 90, 'N1');
+        drawNandMini(svg, 280, 90, 'N2');
+        // Inputs to N1
+        drawWirePath(svg, 'M 45 65 L 120 78');
+        drawWirePath(svg, 'M 45 115 L 120 102');
+        // N1 to N2 (tied)
+        drawWirePath(svg, 'M 182 90 L 220 90 L 220 78 L 250 78');
+        drawWirePath(svg, 'M 220 90 L 220 102 L 250 102');
+        // N2 to out
+        drawWirePath(svg, 'M 312 90 L 390 90');
+        drawOutputTerminal(svg, 390, 90, 'Y = AB');
+      } else if (type === 'OR_CIRCUIT') {
+        // De Morgan OR = N1(A,A), N2(B,B), N3(N1,N2)
+        drawRailTerminal(svg, 40, 50, 'A');
+        drawRailTerminal(svg, 40, 130, 'B');
+        drawNandMini(svg, 140, 50, 'N1');
+        drawNandMini(svg, 140, 130, 'N2');
+        drawNandMini(svg, 280, 90, 'N3');
+        // A tied to N1
+        drawWirePath(svg, 'M 40 50 L 80 50 L 80 38 L 110 38');
+        drawWirePath(svg, 'M 80 50 L 80 62 L 110 62');
+        // B tied to N2
+        drawWirePath(svg, 'M 40 130 L 80 130 L 80 118 L 110 118');
+        drawWirePath(svg, 'M 80 130 L 80 142 L 110 142');
+        // N1 & N2 into N3
+        drawWirePath(svg, 'M 172 50 L 220 50 L 220 78 L 250 78');
+        drawWirePath(svg, 'M 172 130 L 220 130 L 220 102 L 250 102');
+        // Output
+        drawWirePath(svg, 'M 312 90 L 395 90');
+        drawOutputTerminal(svg, 395, 90, 'Y = A+B');
+      } else if (type === 'BASIC_NAND') {
+        // Raw NAND
+        drawRailTerminal(svg, 50, 65, 'A');
+        drawRailTerminal(svg, 50, 115, 'B');
+        drawNandMini(svg, 220, 90, 'N1');
+        drawWirePath(svg, 'M 50 65 L 190 78');
+        drawWirePath(svg, 'M 50 115 L 190 102');
+        drawWirePath(svg, 'M 252 90 L 370 90');
+        drawOutputTerminal(svg, 370, 90, 'Y = (AB)\'');
+      } else if (type === 'XOR_4NAND') {
+        // COMPLETE 4-NAND XOR SCHEMATIC WITH CLEAR WIRES & LABELS
+        drawRailTerminal(svg, 30, 55, 'A');
+        drawRailTerminal(svg, 30, 125, 'B');
+        drawNandMini(svg, 120, 90, 'N1');
+        drawNandMini(svg, 230, 45, 'N2');
+        drawNandMini(svg, 230, 135, 'N3');
+        drawNandMini(svg, 345, 90, 'N4');
+
+        // Wire A into N1 and N2
+        drawWirePath(svg, 'M 30 55 L 70 55 L 70 78 L 90 78'); // A -> N1 pin1
+        drawWirePath(svg, 'M 70 55 L 200 33'); // A -> N2 pin1
+
+        // Wire B into N1 and N3
+        drawWirePath(svg, 'M 30 125 L 70 125 L 70 102 L 90 102'); // B -> N1 pin2
+        drawWirePath(svg, 'M 70 125 L 200 147'); // B -> N3 pin2
+
+        // Output of N1 into N2 and N3
+        drawWirePath(svg, 'M 152 90 L 175 90 L 175 57 L 200 57'); // N1 -> N2 pin2
+        drawWirePath(svg, 'M 175 90 L 175 123 L 200 123'); // N1 -> N3 pin1
+
+        // Outputs of N2 and N3 into N4
+        drawWirePath(svg, 'M 262 45 L 295 45 L 295 78 L 315 78');
+        drawWirePath(svg, 'M 262 135 L 295 135 L 295 102 L 315 102');
+
+        // N4 Out
+        drawWirePath(svg, 'M 377 90 L 415 90');
+        drawOutputTerminal(svg, 415, 90, 'Y = A⊕B');
+      } else if (type === 'NOR_4NAND') {
+        // COMPLETE 4-NAND NOR SCHEMATIC (OR stage followed by Inverter)
+        drawRailTerminal(svg, 25, 45, 'A');
+        drawRailTerminal(svg, 25, 135, 'B');
+        drawNandMini(svg, 105, 45, 'N1');
+        drawNandMini(svg, 105, 135, 'N2');
+        drawNandMini(svg, 215, 90, 'N3');
+        drawNandMini(svg, 325, 90, 'N4');
+
+        // Tied inverters N1 and N2
+        drawWirePath(svg, 'M 25 45 L 55 45 L 55 33 L 75 33');
+        drawWirePath(svg, 'M 55 45 L 55 57 L 75 57');
+        drawWirePath(svg, 'M 25 135 L 55 135 L 55 123 L 75 123');
+        drawWirePath(svg, 'M 55 135 L 55 147 L 75 147');
+
+        // N1 and N2 into N3
+        drawWirePath(svg, 'M 137 45 L 165 45 L 165 78 L 185 78');
+        drawWirePath(svg, 'M 137 135 L 165 135 L 165 102 L 185 102');
+
+        // N3 into N4 (tied inverter)
+        drawWirePath(svg, 'M 247 90 L 275 90 L 275 78 L 295 78');
+        drawWirePath(svg, 'M 275 90 L 275 102 L 295 102');
+
+        // N4 Out
+        drawWirePath(svg, 'M 357 90 L 405 90');
+        drawOutputTerminal(svg, 405, 90, 'Y=(A+B)\'');
+      }
+    }
+
+    function drawRailTerminal(svg, x, y, label) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const c = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      c.setAttribute('cx', x);
+      c.setAttribute('cy', y);
+      c.setAttribute('r', '12');
+      c.setAttribute('fill', '#0f172a');
+      c.setAttribute('stroke', '#06b6d4');
+      c.setAttribute('stroke-width', '2');
+      g.appendChild(c);
+
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x);
+      t.setAttribute('y', y + 4);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-family', 'JetBrains Mono');
+      t.setAttribute('font-size', '11');
+      t.setAttribute('font-weight', 'bold');
+      t.setAttribute('fill', '#38bdf8');
+      g.appendChild(t);
+      t.textContent = label;
+      svg.appendChild(g);
+    }
+
+    function drawOutputTerminal(svg, x, y, label) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const r = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+      r.setAttribute('x', x - 5);
+      r.setAttribute('y', y - 12);
+      r.setAttribute('width', '55');
+      r.setAttribute('height', '24');
+      r.setAttribute('rx', '6');
+      r.setAttribute('fill', '#064e3b');
+      r.setAttribute('stroke', '#10b981');
+      r.setAttribute('stroke-width', '1.5');
+      g.appendChild(r);
+
+      const t = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      t.setAttribute('x', x + 22);
+      t.setAttribute('y', y + 4);
+      t.setAttribute('text-anchor', 'middle');
+      t.setAttribute('font-family', 'JetBrains Mono');
+      t.setAttribute('font-size', '10');
+      t.setAttribute('font-weight', 'bold');
+      t.setAttribute('fill', '#34d399');
+      t.textContent = label;
+      g.appendChild(t);
+      svg.appendChild(g);
+    }
+
+    function drawWirePath(svg, d) {
+      const p = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      p.setAttribute('d', d);
+      p.setAttribute('fill', 'none');
+      p.setAttribute('stroke', '#475569');
+      p.setAttribute('stroke-width', '2');
+      svg.appendChild(p);
+    }
+
+    function drawNandMini(svg, x, y, label) {
+      const g = document.createElementNS('http://www.w3.org/2000/svg', 'g');
+      const body = document.createElementNS('http://www.w3.org/2000/svg', 'path');
+      body.setAttribute('d', `M ${x - 30} ${y - 20} L ${x - 4} ${y - 20} A 20 20 0 0 1 ${x - 4} ${y + 20} L ${x - 30} ${y + 20} Z`);
+      body.setAttribute('fill', '#090e1a');
+      body.setAttribute('stroke', '#06b6d4');
+      body.setAttribute('stroke-width', '1.8');
+      g.appendChild(body);
+
+      const bubble = document.createElementNS('http://www.w3.org/2000/svg', 'circle');
+      bubble.setAttribute('cx', x + 21);
+      bubble.setAttribute('cy', y);
+      bubble.setAttribute('r', '4.5');
+      bubble.setAttribute('fill', '#090e1a');
+      bubble.setAttribute('stroke', '#06b6d4');
+      bubble.setAttribute('stroke-width', '1.8');
+      g.appendChild(bubble);
+
+      const txt = document.createElementNS('http://www.w3.org/2000/svg', 'text');
+      txt.setAttribute('x', x - 12);
+      txt.setAttribute('y', y + 4);
+      txt.setAttribute('font-family', 'JetBrains Mono');
+      txt.setAttribute('font-size', '9');
+      txt.setAttribute('fill', '#cbd5e1');
+      txt.textContent = label;
+      g.appendChild(txt);
+
+      svg.appendChild(g);
+    }
+
+    // ==============================================================
+    // FREEFORM SANDBOX WITH CUSTOM BOOLEAN TARGET & PARSER
+    // ==============================================================
+    function initSandbox() {
+      applyCustomSandboxTarget();
+      renderSandbox();
+    }
+
+    // Custom Boolean Evaluator supporting standard notation:
+    // A'B + AB', (A+B)', A*B + C, A XOR B, A AND B, etc.
+    function parseCustomBoolean(exprStr) {
+      return (A, B) => {
+        try {
+          let s = exprStr.trim().toUpperCase();
+          // Replace synonyms
+          s = s.replace(/XOR/g, '^');
+          s = s.replace(/⊕/g, '^');
+          s = s.replace(/AND/g, '&');
+          s = s.replace(/OR/g, '|');
+          s = s.replace(/NOT/g, '!');
+          s = s.replace(/·/g, '&');
+          s = s.replace(/\*/g, '&');
+          s = s.replace(/\+/g, '|');
+
+          // Convert prime notation: A' -> (!A), B' -> (!B)
+          s = s.replace(/A'/g, '(!A)');
+          s = s.replace(/B'/g, '(!B)');
+
+          // Convert implicit multiplication like AB -> A&B, A(!B) -> A&(!B)
+          s = s.replace(/([AB\)])\s*([AB\(])/g, '$1&$2');
+          s = s.replace(/([AB\)])\s*(!)/g, '$1&$2');
+
+          // Substitute values
+          s = s.replace(/A/g, A === 1 ? 'true' : 'false');
+          s = s.replace(/B/g, B === 1 ? 'true' : 'false');
+
+          // Safely evaluate boolean logic
+          const fn = new Function(`return (${s}) ? 1 : 0;`);
+          return fn();
+        } catch(e) {
+          // Fallback simple XOR if malformed
+          return (A !== B) ? 1 : 0;
+        }
+      };
+    }
+
+    function applyCustomSandboxTarget() {
+      sound.playSnap();
+      const input = document.getElementById('sandbox-custom-expr-input');
+      const val = input.value.trim() || "A'B + AB'";
+      sandboxCustomTargetExpr = val;
+      sandboxCustomTargetFunc = parseCustomBoolean(val);
+      document.getElementById('sandbox-target-display').textContent = `Target: Y = ${val}`;
+      renderSandboxEvaluation();
+    }
+
+    function loadPresetSandboxTarget(val) {
+      if (!val) return;
+      document.getElementById('sandbox-custom-expr-input').value = val;
+      applyCustomSandboxTarget();
+    }
+
+    function addSandboxNand() {
+      sound.playToggle();
+      if (sandboxGates.length >= 5) return;
+      sandboxGates.push({ in1: null, in2: null });
+      sandboxOutput = `N${sandboxGates.length}`;
+      renderSandbox();
+    }
+
+    function resetSandboxLab() {
+      sound.playToggle();
+      sandboxGates = [{ in1: 'A', in2: 'B' }];
+      sandboxOutput = 'N1';
+      renderSandbox();
+    }
+
+    function removeSandboxNand(idx) {
+      sound.playToggle();
+      if (sandboxGates.length <= 1) return;
+      sandboxGates.splice(idx, 1);
+      const maxIdx = sandboxGates.length;
+      sandboxGates.forEach(g => {
+        if (g.in1 && g.in1.startsWith('N')) {
+          const num = parseInt(g.in1.substring(1));
+          if (num > maxIdx) g.in1 = null;
+        }
+        if (g.in2 && g.in2.startsWith('N')) {
+          const num = parseInt(g.in2.substring(1));
+          if (num > maxIdx) g.in2 = null;
+        }
+      });
+      if (sandboxOutput.startsWith('N')) {
+        const outNum = parseInt(sandboxOutput.substring(1));
+        if (outNum > maxIdx) sandboxOutput = `N${maxIdx}`;
+      }
+      renderSandbox();
+    }
+
+    function toggleSandboxInput(which) {
+      sound.playToggle();
+      sandboxInputs[which] = sandboxInputs[which] === 1 ? 0 : 1;
+      updateSandboxButtonsVisual();
+      renderSandboxEvaluation();
+    }
+
+    function updateSandboxButtonsVisual() {
+      const btnA = document.getElementById('btn-sb-A');
+      const btnB = document.getElementById('btn-sb-B');
+      btnA.textContent = `A = ${sandboxInputs.A}`;
+      btnB.textContent = `B = ${sandboxInputs.B}`;
+      btnA.className = `px-2.5 py-1 rounded-lg font-mono text-xs font-bold border transition ${
+        sandboxInputs.A === 1 ? 'bg-emerald-950 border-emerald-500 text-emerald-300' : 'bg-cyber-800 border-slate-600 text-slate-400'
+      }`;
+      btnB.className = `px-2.5 py-1 rounded-lg font-mono text-xs font-bold border transition ${
+        sandboxInputs.B === 1 ? 'bg-emerald-950 border-emerald-500 text-emerald-300' : 'bg-cyber-800 border-slate-600 text-slate-400'
+      }`;
+    }
+
+    function updateSandboxPin(gIdx, pinIdx, val) {
+      sound.playSnap();
+      const v = (val === 'unconnected' || val === '') ? null : val;
+      if (pinIdx === 1) sandboxGates[gIdx].in1 = v;
+      else sandboxGates[gIdx].in2 = v;
+      renderSandboxEvaluation();
+    }
+
+    function updateSandboxOutput(val) {
+      sound.playToggle();
+      sandboxOutput = val;
+      renderSandboxEvaluation();
+    }
+
+    function renderSandbox() {
+      updateSandboxButtonsVisual();
+      const list = document.getElementById('sandbox-gate-list');
+      const outSelect = document.getElementById('sandbox-output-select');
+      list.innerHTML = '';
+      outSelect.innerHTML = '';
+
+      const validInputs = ['A', 'B'];
+
+      sandboxGates.forEach((_, idx) => {
+        const id = `N${idx + 1}`;
+        const opt = document.createElement('option');
+        opt.value = id;
+        opt.textContent = id;
+        if (id === sandboxOutput) opt.selected = true;
+        outSelect.appendChild(opt);
+      });
+
+      sandboxGates.forEach((g, idx) => {
+        const gateId = `N${idx + 1}`;
+        const availableSources = [...validInputs];
+        for (let i = 0; i < sandboxGates.length; i++) {
+          if (i !== idx) availableSources.push(`N${i + 1}`);
+        }
+
+        const div = document.createElement('div');
+        div.className = "p-2 rounded-xl bg-cyber-850 border border-cyber-700/70 flex items-center justify-between gap-2 text-xs font-mono";
+        div.innerHTML = `
+          <div class="flex items-center gap-1.5">
+            <span class="px-2 py-0.5 rounded bg-cyan-950 text-cyan-400 border border-cyan-800 font-bold">${gateId}</span>
+            <span class="text-slate-300 font-sans text-[11px]">NAND ${idx + 1}</span>
+          </div>
+
+          <div class="flex items-center gap-1.5">
+            <label class="text-slate-400">1:</label>
+            <select onchange="updateSandboxPin(${idx}, 1, this.value)" class="bg-cyber-800 border border-cyber-700 rounded px-1.5 py-0.5 text-cyan-300 text-xs">
+              <option value="unconnected" ${g.in1 === null ? 'selected' : ''}>--</option>
+              ${availableSources.map(s => `<option value="${s}" ${g.in1 === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+
+            <label class="text-slate-400">2:</label>
+            <select onchange="updateSandboxPin(${idx}, 2, this.value)" class="bg-cyber-800 border border-cyber-700 rounded px-1.5 py-0.5 text-cyan-300 text-xs">
+              <option value="unconnected" ${g.in2 === null ? 'selected' : ''}>--</option>
+              ${availableSources.map(s => `<option value="${s}" ${g.in2 === s ? 'selected' : ''}>${s}</option>`).join('')}
+            </select>
+
+            ${sandboxGates.length > 1 ? `
+              <button onclick="removeSandboxNand(${idx})" class="p-1 rounded text-rose-400 hover:bg-rose-950/40 ml-1">
+                <i data-lucide="trash-2" class="w-3.5 h-3.5"></i>
+              </button>
+            ` : ''}
+          </div>
+        `;
+        list.appendChild(div);
+      });
+
+      document.getElementById('btn-sandbox-add').disabled = (sandboxGates.length >= 5);
+      renderSandboxEvaluation();
+      lucide.createIcons();
+    }
+
+    function renderSandboxEvaluation() {
+      const simCurrent = simulateLogic(sandboxGates, sandboxOutput, sandboxInputs.A, sandboxInputs.B);
+      const outSpan = document.getElementById('sandbox-final-val');
+      outSpan.textContent = simCurrent.output;
+      outSpan.className = `font-mono font-bold px-2 py-0.5 rounded border text-xs ${
+        simCurrent.output === 1 ? 'bg-emerald-950 border-emerald-500 text-emerald-300' : 'bg-cyber-800 border-slate-700 text-slate-400'
+      }`;
+
+      const vectors = [
+        { a: 0, b: 0 },
+        { a: 0, b: 1 },
+        { a: 1, b: 0 },
+        { a: 1, b: 1 }
+      ];
+
+      const tbody = document.getElementById('sandbox-table-body');
+      tbody.innerHTML = '';
+      const circuitResults = [];
+      let matchCount = 0;
+
+      vectors.forEach(vec => {
+        const sim = simulateLogic(sandboxGates, sandboxOutput, vec.a, vec.b);
+        circuitResults.push(sim.output);
+        const targetVal = sandboxCustomTargetFunc(vec.a, vec.b);
+        const isMatch = (sim.output === targetVal);
+        if (isMatch) matchCount++;
+
+        const tr = document.createElement('tr');
+        const isActive = (vec.a === sandboxInputs.A && vec.b === sandboxInputs.B);
+        tr.className = isActive ? 'bg-cyan-950/45 ring-1 ring-cyan-500/40' : 'hover:bg-cyber-850/60';
+        tr.innerHTML = `
+          <td class="py-1.5 font-bold">${vec.a}</td>
+          <td class="py-1.5 font-bold">${vec.b}</td>
+          <td class="py-1.5 font-bold text-cyan-400">${targetVal}</td>
+          <td class="py-1.5 font-bold ${sim.output === 1 ? 'text-emerald-400' : 'text-slate-400'}">${sim.output}</td>
+          <td class="py-1.5">
+            ${isMatch ? '<span class="text-emerald-400 text-[10px] font-bold">MATCH</span>' : '<span class="text-rose-400 text-[10px]">DIFF</span>'}
+          </td>
+        `;
+        tbody.appendChild(tr);
+      });
+
+      const isTargetMatched = (matchCount === vectors.length);
+      const statusBadge = document.getElementById('sandbox-goal-status');
+      if (isTargetMatched) {
+        statusBadge.className = "text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-emerald-950 border border-emerald-500 text-emerald-300";
+        statusBadge.textContent = "Goal Solved!";
+      } else {
+        statusBadge.className = "text-[11px] font-mono font-bold px-2 py-0.5 rounded bg-amber-950 border border-amber-600 text-amber-300";
+        statusBadge.textContent = `${matchCount}/${vectors.length} Match`;
+      }
+
+      const sig = circuitResults.join('');
+      let gateName = 'Custom Boolean Circuit';
+      if (sig === '1110') gateName = 'NAND(A, B)';
+      else if (sig === '0001') gateName = 'AND(A, B)';
+      else if (sig === '0111') gateName = 'OR(A, B)';
+      else if (sig === '1000') gateName = 'NOR(A, B)';
+      else if (sig === '0110') gateName = 'XOR(A, B)';
+      else if (sig === '1001') gateName = 'XNOR(A, B)';
+      else if (sig === '1100') gateName = 'NOT(A)';
+      else if (sig === '1010') gateName = 'NOT(B)';
+      else if (sig === '0000') gateName = 'Constant 0 (GND)';
+      else if (sig === '1111') gateName = 'Constant 1 (VCC)';
+
+      document.getElementById('sandbox-boolean-expr').textContent = `F(A, B) = ${gateName}`;
+      renderSchematic('sandbox-circuit-svg', sandboxGates, sandboxOutput, simCurrent.wireValues, 'sandbox');
+    }
+  </script>
+</body>
+</html>
