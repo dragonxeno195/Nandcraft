@@ -849,84 +849,92 @@
       },
 
       // --- ADVANCED 3-WIRE PROBLEMS (HUMAN-READABLE TEXTBOOK TITLES & EXPLICIT FORMULAS) ---
-      MUX: {
+      SOP2: {
         category: 'advanced',
-        name: '2:1 Multiplexer',
-        title: '2-to-1 Multiplexer (Data A, Data B, Select S)',
-        equation: "Y = (S' · A) + (S · B)",
-        optimalCount: 4,
-        inputs: ['A', 'B', 'C'], // 'C' acts as Select S
-        inputLabels: { A: 'A (D0)', B: 'B (D1)', C: 'S (Sel)' },
-        targetFunc: (A, B, S) => (S === 0 ? A : B),
-        hint: `SOP equation: Y = (A &middot; S') + (B &middot; S). Invert S with N1. Compute NAND(A, S') with N2, and NAND(B, S) with N3. Combine with N4!`,
-        walkthrough: `
-          <h4 class="font-bold text-cyan-300">Multiplexer NAND Architecture:</h4>
-          <p>Boolean equation: <code class="text-cyan-200">Y = (A &middot; S') + (B &middot; S)</code></p>
-          <p>Using De Morgan's: <code class="text-cyan-200">Y = NAND( (A &middot; S')', (B &middot; S)' )</code></p>
-          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
-            <li>N1 (Invert S): Pin 1 &rarr; C, Pin 2 &rarr; C</li>
-            <li>N2: Pin 1 &rarr; A, Pin 2 &rarr; N1 (computes (A &middot; S')')</li>
-            <li>N3: Pin 1 &rarr; B, Pin 2 &rarr; C (computes (B &middot; S)')</li>
-            <li>N4: Pin 1 &rarr; N2, Pin 2 &rarr; N3</li>
-            <li>Circuit Output &rarr; N4</li>
-          </ul>
-        `
-      },
-      MAJORITY: {
-        category: 'advanced',
-        name: 'Majority Voter',
-        title: '3-Input Majority Voter [AB + BC + AC]',
-        equation: "Y = AB + BC + AC",
-        optimalCount: 4,
-        inputs: ['A', 'B', 'C'],
-        inputLabels: { A: 'A', B: 'B', C: 'C' },
-        targetFunc: (A, B, C) => ((A + B + C) >= 2 ? 1 : 0),
-        hint: `Majority = (A&middot;B) + (B&middot;C) + (A&middot;C). Pairwise NAND terms: N1=NAND(A,B), N2=NAND(B,C), N3=NAND(A,C). Combine through downstream NAND!`,
-        walkthrough: `
-          <h4 class="font-bold text-cyan-300">3-Input Majority Function:</h4>
-          <p>Equation: <code class="text-cyan-200">Y = AB + BC + AC = ((AB)' &middot; (BC)' &middot; (AC)')'</code></p>
-          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
-            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B</li>
-            <li>N2: Pin 1 &rarr; B, Pin 2 &rarr; C</li>
-            <li>N3: Pin 1 &rarr; A, Pin 2 &rarr; C</li>
-            <li>N4: Combine into final stage</li>
-          </ul>
-        `
-      },
-      PARITY3: {
-        category: 'advanced',
-        name: '3-Input Parity',
-        title: '3-Input Odd Parity [A ⊕ B ⊕ C]',
-        equation: "Y = A ⊕ B ⊕ C",
-        optimalCount: 5,
-        inputs: ['A', 'B', 'C'],
-        inputLabels: { A: 'A', B: 'B', C: 'C' },
-        targetFunc: (A, B, C) => ((A + B + C) % 2 === 1 ? 1 : 0),
-        hint: `Parity is odd when the sum of 1s is odd. Chain XOR stages: first XOR(A, B), then XOR the result with C!`,
-        walkthrough: `
-          <h4 class="font-bold text-cyan-300">3-Variable Parity Generator:</h4>
-          <p><code class="text-cyan-200">Parity = A &oplus; B &oplus; C</code></p>
-          <p>Stage 1 creates <code class="text-cyan-200">X = A &oplus; B</code> using 4 NAND gates. Stage 2 evaluates <code class="text-cyan-200">X &oplus; C</code>.</p>
-        `
-      },
-      SOP: {
-        category: 'advanced',
-        name: 'Sum of Products',
+        name: '2-Level SOP',
         title: 'Sum-of-Products: [(A · B) + (B · C)]',
         equation: "Y = (A · B) + (B · C)",
         optimalCount: 3,
         inputs: ['A', 'B', 'C'],
         inputLabels: { A: 'A', B: 'B', C: 'C' },
         targetFunc: (A, B, C) => ((A === 1 && B === 1) || (B === 1 && C === 1) ? 1 : 0),
-        hint: `Direct NAND-NAND logic! N1 = NAND(A, B), N2 = NAND(B, C), then N3 = NAND(N1, N2). Two levels of NAND directly evaluate Sum-of-Products!`,
+        hint: `Direct 2-level NAND-NAND logic! Evaluate pairwise terms N1=NAND(A, B) and N2=NAND(B, C), then combine into N3=NAND(N1, N2).`,
         walkthrough: `
           <h4 class="font-bold text-cyan-300">Two-Level NAND-NAND Equivalence:</h4>
           <p>By De Morgan's: <code class="text-cyan-200">(AB) + (BC) = ((AB)' &middot; (BC)')' = NAND( NAND(A, B), NAND(B, C) )</code></p>
           <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
-            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B</li>
-            <li>N2: Pin 1 &rarr; B, Pin 2 &rarr; C</li>
+            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B (computes (AB)')</li>
+            <li>N2: Pin 1 &rarr; B, Pin 2 &rarr; C (computes (BC)')</li>
             <li>N3: Pin 1 &rarr; N1, Pin 2 &rarr; N2</li>
             <li>Circuit Output &rarr; N3</li>
+          </ul>
+        `
+      },
+      DEMORGAN_POS: {
+        category: 'advanced',
+        name: 'De Morgan POS',
+        title: "Product-of-Sums: (A + B) · (A' + C)",
+        equation: "Y = (A + B) · (A' + C)",
+        optimalCount: 4,
+        inputs: ['A', 'B', 'C'],
+        inputLabels: { A: 'A', B: 'B', C: 'C' },
+        targetFunc: (A, B, C) => (((A === 1 || B === 1) && (A === 0 || C === 1)) ? 1 : 0),
+        hint: `Simplify or apply De Morgan: Y = (A · C) + (A' · B). Invert A with N1, then build product terms with N2 and N3, and combine with N4!`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">Factoring POS to NAND-NAND Form:</h4>
+          <p>Distribute and simplify: <code class="text-cyan-200">(A + B)(A' + C) = AC + A'B</code></p>
+          <p>NAND-NAND implementation:</p>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1 (Invert A): Pin 1 &rarr; A, Pin 2 &rarr; A</li>
+            <li>N2: Pin 1 &rarr; A, Pin 2 &rarr; C (computes (AC)')</li>
+            <li>N3: Pin 1 &rarr; N1, Pin 2 &rarr; B (computes (A'B)')</li>
+            <li>N4: Pin 1 &rarr; N2, Pin 2 &rarr; N3</li>
+            <li>Circuit Output &rarr; N4</li>
+          </ul>
+        `
+      },
+      XOR_COMPOSITE: {
+        category: 'advanced',
+        name: 'XOR Synthesis',
+        title: "Optimal XOR [A'B + AB']",
+        equation: "Y = A ⊕ B = A'B + AB'",
+        optimalCount: 4,
+        inputs: ['A', 'B'],
+        inputLabels: { A: 'A', B: 'B' },
+        targetFunc: (A, B) => (A ^ B),
+        hint: `The classic 4-gate XOR uses an intermediate shared NAND! First compute N1 = NAND(A, B). Feed N1 alongside A into N2, and alongside B into N3. Finally, combine N2 and N3 into N4.`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">Optimal 4-NAND XOR Bridge:</h4>
+          <p>Shared term: <code class="text-cyan-200">N1 = (AB)'</code></p>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B</li>
+            <li>N2: Pin 1 &rarr; A, Pin 2 &rarr; N1</li>
+            <li>N3: Pin 1 &rarr; B, Pin 2 &rarr; N1</li>
+            <li>N4: Pin 1 &rarr; N2, Pin 2 &rarr; N3</li>
+            <li>Circuit Output &rarr; N4</li>
+          </ul>
+        `
+      },
+      XNOR_COMPOSITE: {
+        category: 'advanced',
+        name: 'XNOR Synthesis',
+        title: "Optimal XNOR [AB + A'B']",
+        equation: "Y = (A ⊕ B)' = AB + A'B'",
+        optimalCount: 5,
+        inputs: ['A', 'B'],
+        inputLabels: { A: 'A', B: 'B' },
+        targetFunc: (A, B) => (A === B ? 1 : 0),
+        hint: `XNOR is an inverted XOR! Build the 4-gate XOR structure (N1 through N4), then add N5 as an inverter by tying its inputs to N4.`,
+        walkthrough: `
+          <h4 class="font-bold text-cyan-300">5-NAND XNOR Circuit:</h4>
+          <p>Takes the standard 4-NAND XOR output and runs it through a 5th inverter gate.</p>
+          <ul class="list-disc pl-4 space-y-1 font-mono text-[11px] text-slate-300">
+            <li>N1: Pin 1 &rarr; A, Pin 2 &rarr; B</li>
+            <li>N2: Pin 1 &rarr; A, Pin 2 &rarr; N1</li>
+            <li>N3: Pin 1 &rarr; B, Pin 2 &rarr; N1</li>
+            <li>N4: Pin 1 &rarr; N2, Pin 2 &rarr; N3</li>
+            <li>N5 (Invert N4): Pin 1 &rarr; N4, Pin 2 &rarr; N4</li>
+            <li>Circuit Output &rarr; N5</li>
           </ul>
         `
       }
@@ -1102,7 +1110,7 @@
         viewQuiz.classList.add('hidden');
         viewSandbox.classList.add('hidden');
         buildProblemChips(mode);
-        const firstKey = mode === 'basics' ? 'NOT' : 'MUX';
+        const firstKey = mode === 'basics' ? 'NOT' : 'SOP2';
         loadCircuitProblem(firstKey, true);
       } else if (mode === 'quiz') {
         viewCircuit.classList.add('hidden');
