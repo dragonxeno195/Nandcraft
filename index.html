@@ -1746,6 +1746,35 @@
         body.setAttribute('fill', '#090e1a');
         body.setAttribute('stroke', '#38bdf8');
         body.setAttribute('stroke-width', '2');
+        body.setAttribute('class', 'cursor-pointer');
+
+        // Large tap target for the whole gate
+        const gateHitArea = document.createElementNS('http://www.w3.org/2000/svg', 'rect');
+        gateHitArea.setAttribute('x', pos.x - 35);
+        gateHitArea.setAttribute('y', pos.y - 30);
+        gateHitArea.setAttribute('width', '70');
+        gateHitArea.setAttribute('height', '60');
+        gateHitArea.setAttribute('fill', 'transparent');
+        gateHitArea.setAttribute('class', 'cursor-pointer');
+
+        const handleGateBodyTap = (e) => {
+          if (!wireRouting.active) return;
+          e.stopPropagation();
+          // Find next open pin, or default to pin 2
+          let targetPin = 1;
+          if (gate.in1 !== null && gate.in2 === null) {
+            targetPin = 2;
+          } else if (gate.in1 !== null && gate.in2 !== null) {
+            targetPin = 2; // both occupied, overwrite second
+          }
+          connectWireToPort(mode, gIdx, targetPin, wireRouting.sourceId);
+          cancelWiringMode();
+        };
+
+        gateHitArea.addEventListener('click', handleGateBodyTap);
+        body.addEventListener('click', handleGateBodyTap);
+
+        gateGroup.appendChild(gateHitArea);
         gateGroup.appendChild(body);
 
         // Inversion Bubble
@@ -1861,14 +1890,33 @@
         let destY = wireRouting.currentCoord.y;
 
         let snapped = null;
+        // Check pin-level proximity first
         for (const port of inputPorts) {
           const dist = Math.hypot(port.x - destX, port.y - destY);
-          if (dist < 28) {
+          if (dist < 32) {
             snapped = port;
             destX = port.x;
             destY = port.y;
             break;
           }
+        }
+
+        // If not hovering directly on a pin, snap to the gate's available input pin
+        if (!snapped) {
+          gates.forEach((g, gIdx) => {
+            const pos = gatePositions[gIdx];
+            if (Math.hypot(pos.x - destX, pos.y - destY) < 45) {
+              const targetPin = (g.in1 !== null && g.in2 === null) ? 2 : 1;
+              snapped = {
+                gateIdx: gIdx,
+                pinIdx: targetPin,
+                x: pos.x - 30,
+                y: targetPin === 1 ? pos.y - 12 : pos.y + 12
+              };
+              destX = snapped.x;
+              destY = snapped.y;
+            }
+          });
         }
         wireRouting.hoveredPort = snapped;
 
