@@ -251,7 +251,7 @@
             </div>
 
             <!-- RESPONSIVE SVG CANVAS CONTAINER WITH ABSOLUTE FLOATING OVERLAY (NO SCREEN SHIFTING) -->
-            <div id="svg-canvas-wrapper" class="relative bg-cyber-900/95 rounded-xl border border-cyber-700/60 p-1 min-h-[320px] flex items-center justify-center overflow-x-auto shadow-inner touch-none">
+           <div id="svg-canvas-wrapper" class="relative bg-cyber-900/95 rounded-xl border border-cyber-700/60 p-1 min-h-[260px] sm:min-h-[320px] flex items-center justify-center overflow-hidden shadow-inner touch-none">
               
               <!-- FLOATING ABSOLUTE WIRING OVERLAY (DOES NOT RESIZE OR SHIFT SCREEN) -->
               <div id="wiring-mode-banner" class="hidden absolute top-3 left-1/2 -translate-x-1/2 z-20 bg-cyber-900/95 border border-cyan-400/70 backdrop-blur-md px-3.5 py-1.5 rounded-full shadow-2xl text-xs text-cyan-200 font-mono flex items-center gap-2.5 pointer-events-auto transition-all animate-fade-in">
@@ -262,7 +262,7 @@
                 </button>
               </div>
 
-              <svg id="circuit-svg" class="w-full h-auto min-w-[620px] max-h-[380px] canvas-wiring" viewBox="0 0 740 330"></svg>
+              <svg id="circuit-svg" class="w-full h-auto max-h-[380px] canvas-wiring block select-none" viewBox="0 0 740 330" preserveAspectRatio="xMinYMid meet"></svg>
             </div>
 
             <!-- Probed Terminal Selector & Accessible Dropdowns -->
@@ -507,8 +507,8 @@
             </div>
 
             <!-- Sandbox Canvas with Floating Overlay -->
-            <div class="relative bg-cyber-900/95 rounded-xl border border-cyber-700/60 p-1 min-h-[300px] flex items-center justify-center overflow-x-auto shadow-inner touch-none">
-              <svg id="sandbox-circuit-svg" class="w-full h-auto min-w-[620px] max-h-[350px] canvas-wiring" viewBox="0 0 740 310"></svg>
+            <div class="relative bg-cyber-900/95 rounded-xl border border-cyber-700/60 p-1 min-h-[260px] sm:min-h-[300px] flex items-center justify-center overflow-hidden shadow-inner touch-none">
+              <svg id="sandbox-circuit-svg" class="w-full h-auto max-h-[350px] canvas-wiring block select-none" viewBox="0 0 740 310" preserveAspectRatio="xMinYMid meet"></svg>
             </div>
 
             <div id="sandbox-gate-list" class="space-y-2"></div>
@@ -1590,15 +1590,16 @@
       const numInputs = prob ? prob.inputs.length : 2;
 
       const rails = {};
+      // Change all the "x: 65" entries to "x: 80":
       if (numInputs === 1) {
-        rails['A'] = { x: 65, y: 165, val: wireValues['A'] || 0, label: 'A' };
+        rails['A'] = { x: 80, y: 165, val: wireValues['A'] || 0, label: 'A' };
       } else if (numInputs === 2) {
-        rails['A'] = { x: 65, y: 110, val: wireValues['A'] || 0, label: 'A' };
-        rails['B'] = { x: 65, y: 220, val: wireValues['B'] || 0, label: 'B' };
+        rails['A'] = { x: 80, y: 110, val: wireValues['A'] || 0, label: 'A' };
+        rails['B'] = { x: 80, y: 220, val: wireValues['B'] || 0, label: 'B' };
       } else {
-        rails['A'] = { x: 65, y: 80, val: wireValues['A'] || 0, label: prob.inputLabels?.A || 'A' };
-        rails['B'] = { x: 65, y: 165, val: wireValues['B'] || 0, label: prob.inputLabels?.B || 'B' };
-        rails['C'] = { x: 65, y: 250, val: wireValues['C'] || 0, label: prob.inputLabels?.C || 'C' };
+        rails['A'] = { x: 80, y: 80, val: wireValues['A'] || 0, label: prob.inputLabels?.A || 'A' };
+        rails['B'] = { x: 80, y: 165, val: wireValues['B'] || 0, label: prob.inputLabels?.B || 'B' };
+        rails['C'] = { x: 80, y: 250, val: wireValues['C'] || 0, label: prob.inputLabels?.C || 'C' };
       }
 
       const gateCount = gates.length;
